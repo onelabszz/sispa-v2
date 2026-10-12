@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Profil Saya</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="margin-bottom:1.5rem">
+  <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Profil Saya</h1>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Kelola informasi akun & keamanan</p>
+</div>
+
+<!-- Kartu Header Profil -->
+<div class="card" style="margin-bottom:1.5rem; overflow:hidden">
+  <div style="background:linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); padding:1.5rem; color:white">
+    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap">
+      <div id="avatarBig" style="width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,.15); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; font-size:1.75rem; font-weight:700; border:1px solid rgba(255,255,255,.25)">
+        K
+      </div>
+      <div style="flex:1; min-width:0">
+        <div id="namaHeader" style="font-size:1.25rem; font-weight:700">—</div>
+        <div id="emailHeader" style="font-size:0.875rem; color:#e0e7ff">—</div>
+        <div id="roleBadge" style="display:inline-block; margin-top:0.5rem; padding:0.2rem 0.6rem; border-radius:999px; background:rgba(255,255,255,.15); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em">
+          —
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div style="display:flex; gap:0.25rem; margin-bottom:1.25rem; border-bottom:1px solid var(--slate-200)">
+  <button id="tabProfil" class="tab-btn active">Data Profil</button>
+  <button id="tabPassword" class="tab-btn">Ubah Password</button>
+</div>
+
+<!-- Panel: Data Profil -->
+<div id="panelProfil">
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="user" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Informasi Akun</h2>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- Info readonly -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px dashed var(--slate-200)">
+        <div>
+          <div style="font-size:0.75rem; color:var(--slate-500)">Email</div>
+          <div id="infoEmail" class="text-mono" style="font-size:0.875rem; font-weight:500">—</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem; color:var(--slate-500)">Role</div>
+          <div id="infoRole" style="font-size:0.875rem; font-weight:500">—</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem; color:var(--slate-500)">Sekolah</div>
+          <div id="infoSekolah" style="font-size:0.875rem; font-weight:500">—</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem; color:var(--slate-500)">NPSN</div>
+          <div id="infoNpsn" class="text-mono" style="font-size:0.875rem; font-weight:500">—</div>
+        </div>
+      </div>
+
+      <!-- Form editable -->
+      <form id="formProfil" style="display:flex; flex-direction:column; gap:1rem">
+        <div>
+          <label class="label" for="fNama">Nama Lengkap & Gelar <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="fNama" class="input" required placeholder="Contoh: Dra. Siti Aminah, M.Pd" />
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+          <div>
+            <label class="label" for="fNip">NIP</label>
+            <input type="text" id="fNip" class="input text-mono" />
+          </div>
+          <div>
+            <label class="label" for="fJk">Jenis Kelamin</label>
+            <select id="fJk" class="select">
+              <option value="">—</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+          <div>
+            <label class="label" for="fPangkat">Pangkat/Golongan</label>
+            <input type="text" id="fPangkat" class="input" placeholder="Contoh: Pembina / IV.a" />
+          </div>
+          <div>
+            <label class="label" for="fStatusPeg">Status Kepegawaian</label>
+            <select id="fStatusPeg" class="select">
+              <option value="">—</option>
+              <option value="PNS">PNS</option>
+              <option value="PPPK">PPPK</option>
+              <option value="Non ASN">Non ASN</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+          <div>
+            <label class="label" for="fJabatan">Jabatan</label>
+            <input type="text" id="fJabatan" class="input" placeholder="Contoh: Kepala Sekolah" />
+          </div>
+          <div>
+            <label class="label" for="fHp">No. HP</label>
+            <input type="text" id="fHp" class="input text-mono" placeholder="08xx xxxx xxxx" />
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; padding-top:0.5rem">
+          <button type="button" id="btnResetProfil" class="btn btn-secondary">Reset</button>
+          <button type="submit" id="btnSimpanProfil" class="btn btn-primary">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Simpan Perubahan</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: Ubah Password -->
+<div id="panelPassword" style="display:none">
+  <div class="card" style="max-width:560px">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="key" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Ubah Password</h2>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="padding:0.75rem; border-radius:8px; background:var(--brand-50); border:1px solid var(--brand-100); font-size:0.8rem; color:var(--brand-900); margin-bottom:1.25rem">
+        Password minimal 6 karakter. Gunakan kombinasi huruf & angka untuk keamanan.
+      </div>
+
+      <form id="formPassword" style="display:flex; flex-direction:column; gap:1rem">
+        <div>
+          <label class="label" for="fOldPass">Password Lama <span style="color:var(--danger)">*</span></label>
+          <div style="position:relative">
+            <input type="password" id="fOldPass" class="input" required style="padding-right:2.4rem" />
+            <button type="button" class="toggle-pwd" data-target="fOldPass" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--slate-400); cursor:pointer; padding:0.25rem">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="label" for="fNewPass">Password Baru <span style="color:var(--danger)">*</span></label>
+          <div style="position:relative">
+            <input type="password" id="fNewPass" class="input" required style="padding-right:2.4rem" />
+            <button type="button" class="toggle-pwd" data-target="fNewPass" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--slate-400); cursor:pointer; padding:0.25rem">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="label" for="fNewPass2">Konfirmasi Password Baru <span style="color:var(--danger)">*</span></label>
+          <div style="position:relative">
+            <input type="password" id="fNewPass2" class="input" required style="padding-right:2.4rem" />
+            <button type="button" class="toggle-pwd" data-target="fNewPass2" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--slate-400); cursor:pointer; padding:0.25rem">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; padding-top:0.5rem">
+          <button type="submit" id="btnSimpanPassword" class="btn btn-primary">
+            <i data-lucide="key" class="w-4 h-4"></i>
+            <span>Ubah Password</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tab-btn {
+    background: transparent; border: none;
+    padding: 0.6rem 1rem;
+    font-size: 0.875rem; font-weight: 500;
+    color: var(--slate-500);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+  .tab-btn:hover { color: var(--slate-900); }
+  .tab-btn.active {
+    color: var(--brand-700);
+    border-bottom-color: var(--brand-600);
+  }
+</style>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/users.js"></script>
+<script>
+  let user = null;
+  let original = null;
+
+  initPage('ks', 'profil', async (u) => {
+    user = u;
+    original = u;
+    renderUser(u);
+  });
+
+  function renderUser(u) {
+    document.getElementById('avatarBig').textContent = (u.nama || 'K').charAt(0).toUpperCase();
+    document.getElementById('namaHeader').textContent = u.nama || '(Belum diisi)';
+    document.getElementById('emailHeader').textContent = u.email || '—';
+    document.getElementById('roleBadge').textContent = (window.SISPA_ROLE_LABEL && SISPA_ROLE_LABEL[u.role]) || u.role;
+
+    document.getElementById('infoEmail').textContent = u.email || '—';
+    document.getElementById('infoRole').textContent = (window.SISPA_ROLE_LABEL && SISPA_ROLE_LABEL[u.role]) || u.role;
+    document.getElementById('infoSekolah').textContent = u.nama_sekolah || '—';
+    document.getElementById('infoNpsn').textContent = u.npsn || '—';
+
+    document.getElementById('fNama').value = u.nama || '';
+    document.getElementById('fNip').value = u.nip || '';
+    document.getElementById('fJk').value = u.jenis_kelamin || '';
+    document.getElementById('fPangkat').value = u.pangkat_golongan || '';
+    document.getElementById('fStatusPeg').value = u.status_kepegawaian || '';
+    document.getElementById('fJabatan').value = u.jabatan || '';
+    document.getElementById('fHp').value = u.no_hp || '';
+  }
+
+  // Tabs
+  const tabProfil = document.getElementById('tabProfil');
+  const tabPassword = document.getElementById('tabPassword');
+  const panelProfil = document.getElementById('panelProfil');
+  const panelPassword = document.getElementById('panelPassword');
+
+  tabProfil.addEventListener('click', () => {
+    tabProfil.classList.add('active');
+    tabPassword.classList.remove('active');
+    panelProfil.style.display = 'block';
+    panelPassword.style.display = 'none';
+  });
+  tabPassword.addEventListener('click', () => {
+    tabPassword.classList.add('active');
+    tabProfil.classList.remove('active');
+    panelProfil.style.display = 'none';
+    panelPassword.style.display = 'block';
+  });
+
+  // Toggle password visibility
+  document.querySelectorAll('.toggle-pwd').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      const isPwd = target.type === 'password';
+      target.type = isPwd ? 'text' : 'password';
+      btn.innerHTML = `<i data-lucide="${isPwd ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
+      refreshIcons();
+    });
+  });
+
+  // Form Profil
+  document.getElementById('formProfil').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnSimpanProfil');
+    const nama = document.getElementById('fNama').value.trim();
+    if (!nama) return showToast('Nama wajib diisi', 'error');
+
+    const payload = {
+      nama,
+      nip: document.getElementById('fNip').value.trim(),
+      jenis_kelamin: document.getElementById('fJk').value || null,
+      pangkat_golongan: document.getElementById('fPangkat').value.trim(),
+      status_kepegawaian: document.getElementById('fStatusPeg').value || null,
+      jabatan: document.getElementById('fJabatan').value.trim(),
+      no_hp: document.getElementById('fHp').value.trim()
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+    refreshIcons();
+
+    try {
+      await UsersAPI.updateProfile(payload);
+      // Refresh user cache
+      const fresh = await getCurrentUser();
+      user = fresh;
+      renderUser(fresh);
+      showToast('Profil diperbarui', 'success');
+      btn.disabled = false;
+      btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan Perubahan</span>`;
+      refreshIcons();
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan Perubahan</span>`;
+      refreshIcons();
+      showToast('Gagal: ' + err.message, 'error');
+    }
+  });
+
+  // Reset form
+  document.getElementById('btnResetProfil').addEventListener('click', () => {
+    if (original) renderUser(original);
+    showToast('Form direset', 'info');
+  });
+
+  // Form Password
+  document.getElementById('formPassword').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnSimpanPassword');
+    const oldPass = document.getElementById('fOldPass').value;
+    const newPass = document.getElementById('fNewPass').value;
+    const newPass2 = document.getElementById('fNewPass2').value;
+
+    if (!oldPass) return showToast('Password lama wajib diisi', 'error');
+    if (newPass.length < 6) return showToast('Password baru minimal 6 karakter', 'error');
+    if (newPass !== newPass2) return showToast('Konfirmasi password tidak cocok', 'error');
+
+    const ok = await confirmAction(
+      'Ubah password?',
+      'Password akun Anda akan diubah. Pastikan Anda mengingat password baru.',
+      { confirmText: 'Ya, ubah' }
+    );
+    if (!ok) return;
+
+    btn.disabled = true;
+    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Memproses...</span>`;
+    refreshIcons();
+
+    try {
+      await UsersAPI.changePassword(oldPass, newPass);
+      document.getElementById('formPassword').reset();
+      showToast('Password berhasil diubah', 'success');
+    } catch (err) {
+      showToast('Gagal: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `${icon('key', 'w-4 h-4')}<span>Ubah Password</span>`;
+      refreshIcons();
+    }
+  });
+</script>
+</body>
+</html>
