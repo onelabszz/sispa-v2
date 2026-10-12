@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Dashboard Pengawas</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .kuadran-mini {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4px;
+    aspect-ratio: 1;
+    max-width: 220px;
+  }
+  .kuadran-mini .q {
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.7rem;
+  }
+  .kuadran-mini .q .count {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+  .kuadran-mini .q .label {
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .kuadran-mini .q1 { background: #fee2e2; color: #991b1b; }  /* dropout - kiri bawah visual */
+  .kuadran-mini .q2 { background: #fef3c7; color: #92400e; }  /* unfocused - kanan bawah visual */
+  .kuadran-mini .q3 { background: #e0e7ff; color: #4338ca; }  /* analytical - kiri atas visual */
+  .kuadran-mini .q4 { background: #dcfce7; color: #166534; }  /* professional - kanan atas visual */
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .bar-row .bar-label {
+    width: 100px;
+    color: var(--slate-600);
+    flex-shrink: 0;
+  }
+  .bar-row .bar-track {
+    flex: 1;
+    height: 10px;
+    background: var(--slate-100);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .bar-row .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .4s ease;
+  }
+  .bar-row .bar-value {
+    width: 50px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--slate-900);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Dashboard Pengawas</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0" id="subtitle">Memuat data...</p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <input type="text" id="periodeInput" class="input" style="width:auto; min-width:180px" placeholder="2025/2026-Ganjil" />
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+  </div>
+</div>
+
+<!-- Statistik Global -->
+<div id="statGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dbeafe; color:#1e40af"><i data-lucide="building-2" class="w-5 h-5"></i></div>
+    <div><div style="font-size:0.75rem; color:var(--slate-500)">Sekolah Binaan</div><div id="statSekolah" style="font-size:1.5rem; font-weight:700">—</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="users" class="w-5 h-5"></i></div>
+    <div><div style="font-size:0.75rem; color:var(--slate-500)">Total Guru</div><div id="statGuru" style="font-size:1.5rem; font-weight:700">—</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="compass" class="w-5 h-5"></i></div>
+    <div><div style="font-size:0.75rem; color:var(--slate-500)">Sudah Dinilai Tipe</div><div id="statDinilai" style="font-size:1.5rem; font-weight:700">—</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="clipboard-check" class="w-5 h-5"></i></div>
+    <div><div style="font-size:0.75rem; color:var(--slate-500)">Supervisi Selesai</div><div id="statSelesai" style="font-size:1.5rem; font-weight:700">—</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fee2e2; color:#991b1b"><i data-lucide="play-circle" class="w-5 h-5"></i></div>
+    <div><div style="font-size:0.75rem; color:var(--slate-500)">Sedang Berjalan</div><div id="statBerjalan" style="font-size:1.5rem; font-weight:700">—</div></div>
+  </div>
+</div>
+
+<!-- Peta Tipe + Distribusi -->
+<div style="display:grid; grid-template-columns: 1fr 2fr; gap:1.5rem; margin-bottom:1.5rem" id="gridAtas">
+
+  <!-- Peta Kuadran Agregat -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="compass" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Peta Tipe Guru Lintas Sekolah</h2>
+      </div>
+    </div>
+    <div class="card-body" style="display:flex; flex-direction:column; align-items:center; padding:1.5rem">
+      <div class="kuadran-mini">
+        <div class="q q3">
+          <div class="count" id="qAnalytical">0</div>
+          <div class="label">Analytical Observer</div>
+        </div>
+        <div class="q q4">
+          <div class="count" id="qProfessional">0</div>
+          <div class="label">Professional</div>
+        </div>
+        <div class="q q1">
+          <div class="count" id="qDropout">0</div>
+          <div class="label">Dropout</div>
+        </div>
+        <div class="q q2">
+          <div class="count" id="qUnfocused">0</div>
+          <div class="label">Unfocused Worker</div>
+        </div>
+      </div>
+      <div style="font-size:0.7rem; color:var(--slate-500); margin-top:1rem; text-align:center; line-height:1.4">
+        Kuadran III & IV: abstraksi tinggi<br>
+        Kuadran I & II: abstraksi rendah
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribusi + bar -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="bar-chart-3" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Distribusi Tipe Guru</h2>
+      </div>
+    </div>
+    <div class="card-body" id="distribusiBox">
+      <div style="text-align:center; color:var(--slate-400); padding:1rem">Memuat...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabel Sekolah -->
+<div class="card" style="overflow:hidden">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="list" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Rekap per Sekolah</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+    </div>
+  </div>
+  <div id="tableWrap" style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Sekolah</th>
+          <th style="text-align:center">Guru</th>
+          <th style="text-align:center">Sudah Dinilai</th>
+          <th style="text-align:center">Supervisi</th>
+          <th style="text-align:center">Progress</th>
+          <th style="text-align:right; width:130px">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="building-2" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada sekolah binaan</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Hubungi admin untuk menetapkan sekolah binaan</p>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/pengawas.js"></script>
+<script>
+  let user = null;
+  let periode = '';
+
+  initPage('pengawas', 'dashboard', async (u) => {
+    user = u;
+    document.getElementById('subtitle').textContent = 'Pantauan supervisi sekolah binaan';
+    await loadData();
+  });
+
+  async function loadData() {
+    await withLoading('Memuat dashboard...', async () => {
+      try {
+        const data = await PengawasAPI.dashboard({ periode: periode || undefined });
+        renderStats(data);
+        renderPetaKuadran(data);
+        renderDistribusi(data);
+        renderTable(data.per_sekolah || []);
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal memuat: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderStats(d) {
+    document.getElementById('statSekolah').textContent = d.total_sekolah;
+    document.getElementById('statGuru').textContent = d.total_guru;
+    document.getElementById('statDinilai').textContent = d.total_dinilai;
+    document.getElementById('statSelesai').textContent = d.supervisi_selesai;
+    document.getElementById('statBerjalan').textContent = d.supervisi_berjalan;
+  }
+
+  function renderPetaKuadran(d) {
+    const dist = d.distribusi_tipe || {};
+    document.getElementById('qDropout').textContent = dist.dropout || 0;
+    document.getElementById('qUnfocused').textContent = dist.unfocused_worker || 0;
+    document.getElementById('qAnalytical').textContent = dist.analytical_observer || 0;
+    document.getElementById('qProfessional').textContent = dist.professional || 0;
+  }
+
+  function renderDistribusi(d) {
+    const dist = d.distribusi_tipe || {};
+    const total = d.total_dinilai || 0;
+    const box = document.getElementById('distribusiBox');
+
+    if (total === 0) {
+      box.innerHTML = '<div style="text-align:center; color:var(--slate-400); padding:1rem">Belum ada guru yang dinilai</div>';
+      return;
+    }
+
+    const items = [
+      { key: 'professional', label: 'Professional', color: '#16a34a', count: dist.professional || 0 },
+      { key: 'analytical_observer', label: 'Analytical', color: '#4f46e5', count: dist.analytical_observer || 0 },
+      { key: 'unfocused_worker', label: 'Unfocused', color: '#d97706', count: dist.unfocused_worker || 0 },
+      { key: 'dropout', label: 'Dropout', color: '#dc2626', count: dist.dropout || 0 }
+    ];
+
+    box.innerHTML = `
+      <div style="margin-bottom:1rem; font-size:0.8rem; color:var(--slate-600)">
+        Total <strong>${total}</strong> guru telah dinilai tipenya
+      </div>
+      ${items.map(it => {
+        const pct = total > 0 ? Math.round((it.count / total) * 100) : 0;
+        return `
+          <div class="bar-row">
+            <div class="bar-label">${it.label}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%; background:${it.color}"></div>
+            </div>
+            <div class="bar-value">${it.count} <span style="font-size:0.7rem; color:var(--slate-400); font-weight:400">(${pct}%)</span></div>
+          </div>`;
+      }).join('')}
+      <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--slate-100); font-size:0.75rem; color:var(--slate-500); line-height:1.6">
+        <strong>Rekomendasi pendekatan supervisi:</strong><br>
+        • Professional → Non-Directive (coaching)<br>
+        • Analytical Observer → Collaborative (coaching)<br>
+        • Unfocused Worker → Directive-Informational (mentoring)<br>
+        • Dropout → Directive-Control (mentoring)
+      </div>`;
+  }
+
+  function renderTable(perSekolah) {
+    const tbody = document.getElementById('tableBody');
+    const wrap = document.getElementById('tableWrap');
+    const empty = document.getElementById('emptyState');
+
+    wrap.style.display = 'none';
+    empty.classList.add('hidden');
+
+    if (!perSekolah.length) {
+      empty.classList.remove('hidden');
+      document.getElementById('resultCount').textContent = 0;
+      refreshIcons();
+      return;
+    }
+    wrap.style.display = 'block';
+    document.getElementById('resultCount').textContent = perSekolah.length;
+
+    tbody.innerHTML = perSekolah.map(sk => {
+      const totalSk = sk.sudah_dinilai + sk.belum_dinilai;
+      const pctDinilai = totalSk > 0 ? Math.round((sk.sudah_dinilai / totalSk) * 100) : 0;
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.75rem">
+              <div style="width:36px; height:36px; border-radius:8px; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.875rem; flex-shrink:0">
+                ${escapeHtml((sk.nama || 'S').charAt(0).toUpperCase())}
+              </div>
+              <div style="min-width:0">
+                <div style="font-weight:500; color:var(--slate-900)">${escapeHtml(sk.nama)}</div>
+                <div class="text-mono" style="font-size:0.75rem; color:var(--slate-500)">${escapeHtml(sk.npsn)} · ${escapeHtml(sk.jenjang || '-')}${sk.kecamatan ? ' · ' + escapeHtml(sk.kecamatan) : ''}</div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center; font-weight:600">${sk.jumlah_guru}</td>
+          <td style="text-align:center">
+            <div style="font-weight:600">${sk.sudah_dinilai} / ${totalSk}</div>
+            <div style="font-size:0.7rem; color:var(--slate-500)">${sk.belum_dinilai} belum</div>
+          </td>
+          <td style="text-align:center">
+            <div style="font-weight:600">${sk.supervisi_selesai} <span style="font-size:0.75rem; color:var(--slate-500); font-weight:400">/ ${sk.total_supervisi}</span></div>
+            ${sk.supervisi_berjalan > 0 ? `<div style="font-size:0.7rem; color:#d97706">${sk.supervisi_berjalan} berjalan</div>` : ''}
+          </td>
+          <td style="min-width:120px">
+            <div class="bar-row" style="margin:0">
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${pctDinilai}%; background:${pctDinilai === 100 ? '#16a34a' : pctDinilai >= 50 ? '#6366f1' : '#f59e0b'}"></div>
+              </div>
+              <div class="bar-value" style="width:40px">${pctDinilai}%</div>
+            </div>
+            <div style="font-size:0.65rem; color:var(--slate-500); text-align:center; margin-top:0.15rem">Guru dinilai tipe</div>
+          </td>
+          <td style="text-align:right; white-space:nowrap">
+            <a href="/sispa-v2/pengawas/sekolah.html?npsn=${escapeHtml(sk.npsn)}" class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.6rem">
+              ${icon('eye', 'w-3.5 h-3.5')}
+              <span>Detail</span>
+            </a>
+          </td>
+        </tr>`;
+    }).join('');
+
+    refreshIcons();
+  }
+
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+  document.getElementById('periodeInput').addEventListener('change', (e) => {
+    periode = e.target.value.trim();
+    loadData();
+  });
+</script>
+</body>
+</html>
