@@ -2,7 +2,8 @@
  * SISPA v2 — App Shell
  * Sidebar + Header + Routing + Role Menu
  */
-// Tambah di paling atas app.js (sebelum SISPA_NAV)
+
+// ===== Inject favicon otomatis ke semua halaman yang load app.js =====
 (function injectFavicon() {
   if (document.querySelector('link[rel="icon"]')) return;
   const link = document.createElement('link');
@@ -10,7 +11,13 @@
   link.type = 'image/svg+xml';
   link.href = '/sispa-v2/favicon.svg';
   document.head.appendChild(link);
+
+  const apple = document.createElement('link');
+  apple.rel = 'apple-touch-icon';
+  apple.href = '/sispa-v2/favicon.svg';
+  document.head.appendChild(apple);
 })();
+
 /* ============================================================
    NAVIGATION CONFIG
    ============================================================ */
@@ -25,7 +32,7 @@ const SISPA_NAV = {
     { key: 'guru', href: '/sispa-v2/admin/guru.html', label: 'Guru', icon: 'graduation-cap' },
     { section: 'Sistem' },
     { key: 'audit', href: '/sispa-v2/admin/audit.html', label: 'Audit Log', icon: 'activity' },
-    { key: 'pengaturan', href: '/sispa-v2/admin/pengaturan.html', label: 'Pengaturan', icon: 'settings' },
+    { key: 'pengaturan', href: '/sispa-v2/admin/pengaturan.html', label: 'Pengaturan', icon: 'settings' }
   ],
   pengawas: [
     { section: 'Utama' },
@@ -33,7 +40,7 @@ const SISPA_NAV = {
     { section: 'Monitoring' },
     { key: 'profil-guru', href: '/sispa-v2/pengawas/profil-guru.html', label: 'Profil Guru', icon: 'compass' },
     { key: 'program', href: '/sispa-v2/pengawas/program.html', label: 'Program Supervisi', icon: 'clipboard-list' },
-    { key: 'supervisi', href: '/sispa-v2/pengawas/supervisi.html', label: 'Semua Supervisi', icon: 'clipboard-check' },
+    { key: 'supervisi', href: '/sispa-v2/pengawas/supervisi.html', label: 'Semua Supervisi', icon: 'clipboard-check' }
   ],
   ks: [
     { section: 'Utama' },
@@ -45,17 +52,17 @@ const SISPA_NAV = {
     { key: 'program', href: '/sispa-v2/ks/program.html', label: 'Program Supervisi', icon: 'clipboard-list' },
     { key: 'pelaksanaan', href: '/sispa-v2/ks/pelaksanaan.html', label: 'Pelaksanaan', icon: 'play-circle' },
     { key: 'riwayat', href: '/sispa-v2/ks/riwayat.html', label: 'Riwayat', icon: 'history' },
-  { section: 'Analitik' },
-  { key: 'analisis', href: '/sispa-v2/ks/analisis.html', label: 'Analisis PM & KKA', icon: 'bar-chart-3' },
-  { section: 'Akun' },
-  { key: 'profil', href: '/sispa-v2/ks/profil.html', label: 'Profil Saya', icon: 'user-circle' },
-],
+    { section: 'Analitik' },
+    { key: 'analisis', href: '/sispa-v2/ks/analisis.html', label: 'Analisis PM & KKA', icon: 'bar-chart-3' },
+    { section: 'Akun' },
+    { key: 'profil', href: '/sispa-v2/ks/profil.html', label: 'Profil Saya', icon: 'user-circle' }
+  ],
   guru: [
     { section: 'Utama' },
     { key: 'dashboard', href: '/sispa-v2/guru/dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
     { section: 'Supervisi Saya' },
     { key: 'riwayat', href: '/sispa-v2/guru/riwayat.html', label: 'Riwayat Supervisi', icon: 'history' },
-    { key: 'rtl', href: '/sispa-v2/guru/rtl.html', label: 'Rencana Tindak Lanjut', icon: 'target' },
+    { key: 'rtl', href: '/sispa-v2/guru/rtl.html', label: 'Rencana Tindak Lanjut', icon: 'target' }
   ]
 };
 
