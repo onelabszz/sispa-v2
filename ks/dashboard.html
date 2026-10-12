@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Dashboard KS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="margin-bottom:1.5rem">
+  <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Dashboard</h1>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0" id="welcomeMsg">Selamat datang</p>
+</div>
+
+<!-- Profil KS -->
+<div class="card" style="margin-bottom:1.5rem; overflow:hidden">
+  <div style="background:linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); padding:1.5rem; color:white">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap">
+      <div style="display:flex; align-items:center; gap:1rem">
+        <div id="ksAvatar" style="width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.15); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:700; border:1px solid rgba(255,255,255,.25)">
+          K
+        </div>
+        <div>
+          <div style="font-size:0.75rem; color:#c7d2fe; text-transform:uppercase; letter-spacing:0.05em">Kepala Sekolah</div>
+          <div id="ksNama" style="font-size:1.25rem; font-weight:700; margin-top:0.25rem">—</div>
+          <div id="ksSekolah" style="font-size:0.875rem; color:#e0e7ff; margin-top:0.125rem">—</div>
+        </div>
+      </div>
+      <button id="btnEditProfil" class="btn" style="background:rgba(255,255,255,.15); color:white; border:1px solid rgba(255,255,255,.25)">
+        <i data-lucide="pencil" class="w-4 h-4"></i>
+        <span>Edit Profil</span>
+      </button>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(4, 1fr); border-top:1px solid var(--slate-100)">
+    <div style="padding:1rem">
+      <div style="font-size:0.75rem; color:var(--slate-500)">NIP</div>
+      <div id="ksNip" class="text-mono" style="font-size:0.875rem; font-weight:500; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+    <div style="padding:1rem; border-left:1px solid var(--slate-100)">
+      <div style="font-size:0.75rem; color:var(--slate-500)">Pangkat/Gol</div>
+      <div id="ksPangkat" style="font-size:0.875rem; font-weight:500; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+    <div style="padding:1rem; border-left:1px solid var(--slate-100)">
+      <div style="font-size:0.75rem; color:var(--slate-500)">Status</div>
+      <div id="ksStatusPeg" style="font-size:0.875rem; font-weight:500; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+    <div style="padding:1rem; border-left:1px solid var(--slate-100)">
+      <div style="font-size:0.75rem; color:var(--slate-500)">Kontak</div>
+      <div id="ksHp" class="text-mono" style="font-size:0.875rem; font-weight:500; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Statistik -->
+<div id="statGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin-bottom:2rem">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dbeafe; color:#1e40af">
+      <i data-lucide="users" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Total Guru</div>
+      <div id="statGuru" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dcfce7; color:#166534">
+      <i data-lucide="compass" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Sudah Dinilai Tipe</div>
+      <div id="statTipe" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#e0e7ff; color:#4338ca">
+      <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Supervisi Selesai</div>
+      <div id="statSupervisi" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fef3c7; color:#92400e">
+      <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Supervisi Berjalan</div>
+      <div id="statSupervisiBerjalan" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Aksi Cepat -->
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="zap" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Aksi Cepat</h2>
+    </div>
+  </div>
+  <div class="card-body" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem">
+    <a href="/sispa-v2/ks/guru.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="users" class="w-4 h-4"></i>
+      <span>Kelola Guru</span>
+    </a>
+    <a href="/sispa-v2/ks/profil-guru.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="compass" class="w-4 h-4"></i>
+      <span>Profil Tipe Guru</span>
+    </a>
+    <a href="/sispa-v2/ks/program.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+      <span>Program Supervisi</span>
+    </a>
+    <a href="/sispa-v2/ks/pelaksanaan.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="play-circle" class="w-4 h-4"></i>
+      <span>Mulai Supervisi</span>
+    </a>
+  </div>
+</div>
+
+<!-- Perlu Perhatian -->
+<div class="card" id="perhatianCard" style="margin-bottom:1.5rem; display:none">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="alert-circle" class="w-4 h-4" style="color:var(--warning)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Perlu Perhatian</h2>
+      <span id="perhatianCount" class="badge badge-warning">0</span>
+    </div>
+  </div>
+  <div id="perhatianList" class="card-body" style="display:flex; flex-direction:column; gap:0.5rem"></div>
+</div>
+
+<!-- Aktivitas Terakhir -->
+<div class="card">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="clock" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Aktivitas Terakhir</h2>
+    </div>
+  </div>
+  <div id="aktivitasList" class="card-body" style="font-size:0.875rem; color:var(--slate-500)">Memuat...</div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script>
+  initPage('ks', 'dashboard', async (user) => {
+    renderProfil(user);
+    await loadDashboard(user);
+  });
+
+  function renderProfil(u) {
+    document.getElementById('ksNama').textContent = u.nama || '(Belum diisi)';
+    document.getElementById('ksSekolah').textContent = u.nama_sekolah || u.npsn || '';
+    document.getElementById('ksNip').textContent = u.nip || '—';
+    document.getElementById('ksPangkat').textContent = u.pangkat_golongan || '—';
+    document.getElementById('ksStatusPeg').textContent = u.status_kepegawaian || '—';
+    document.getElementById('ksHp').textContent = u.no_hp || '—';
+    document.getElementById('ksAvatar').textContent = (u.nama || 'K').charAt(0).toUpperCase();
+    document.getElementById('welcomeMsg').textContent = 'Selamat datang, ' + (u.nama || 'Kepala Sekolah');
+  }
+
+  async function loadDashboard(user) {
+    try {
+      const npsn = user.npsn;
+      if (!npsn) {
+        showToast('Anda belum terhubung dengan sekolah', 'warning');
+        return;
+      }
+
+      // Parallel query
+      const [
+        guruRes,
+        tipeRes,
+        supSelesaiRes,
+        supBerjalanRes,
+        aktivitasRes
+      ] = await Promise.all([
+        sb.from('guru').select('id, nama, status_kepegawaian').eq('npsn_sekolah', npsn).eq('status', 'aktif'),
+        sb.from('profil_tipe_guru').select('guru_id, tipe, pendekatan_rekomendasi, periode').eq('guru_id', null).is('guru_id', null), // placeholder
+        sb.from('supervisi').select('id').eq('npsn_sekolah', npsn).eq('status', 'selesai'),
+        sb.from('supervisi').select('id').eq('npsn_sekolah', npsn).neq('status', 'selesai').neq('status', 'draft'),
+        sb.from('supervisi').select('id, guru_id, status, tanggal_mulai, created_at').eq('npsn_sekolah', npsn).order('created_at', { ascending: false }).limit(5)
+      ]);
+
+      const guruList = guruRes.data || [];
+      const supSelesai = supSelesaiRes.data || [];
+      const supBerjalan = supBerjalanRes.data || [];
+      const aktivitas = aktivitasRes.data || [];
+
+      // Ambil tipe guru untuk semua guru di sekolah
+      const guruIds = guruList.map(g => g.id);
+      let tipeData = [];
+      if (guruIds.length > 0) {
+        const { data } = await sb
+          .from('profil_tipe_guru')
+          .select('guru_id, tipe, pendekatan_rekomendasi')
+          .in('guru_id', guruIds);
+        tipeData = data || [];
+      }
+
+      const sudahDinilai = new Set(tipeData.map(t => t.guru_id)).size;
+
+      document.getElementById('statGuru').textContent = guruList.length;
+      document.getElementById('statTipe').textContent = sudahDinilai + ' / ' + guruList.length;
+      document.getElementById('statSupervisi').textContent = supSelesai.length;
+      document.getElementById('statSupervisiBerjalan').textContent = supBerjalan.length;
+
+      // Perlu Perhatian
+      const perhatian = [];
+
+      if (guruList.length === 0) {
+        perhatian.push({
+          icon: 'users',
+          text: 'Belum ada data guru. Tambahkan guru terlebih dahulu.',
+          href: '/sispa-v2/ks/guru.html',
+          color: 'var(--brand-600)'
+        });
+      } else if (sudahDinilai < guruList.length) {
+        const belum = guruList.length - sudahDinilai;
+        perhatian.push({
+          icon: 'compass',
+          text: `${belum} guru belum dinilai tipe komitmen & abstraksi`,
+          href: '/sispa-v2/ks/profil-guru.html',
+          color: 'var(--warning)'
+        });
+      }
+
+      if (supBerjalan.length > 0) {
+        perhatian.push({
+          icon: 'play-circle',
+          text: `${supBerjalan.length} supervisi belum diselesaikan`,
+          href: '/sispa-v2/ks/riwayat.html',
+          color: 'var(--brand-600)'
+        });
+      }
+
+      if (perhatian.length > 0) {
+        document.getElementById('perhatianCard').style.display = 'block';
+        document.getElementById('perhatianCount').textContent = perhatian.length;
+        document.getElementById('perhatianList').innerHTML = perhatian.map(p => `
+          <a href="${p.href}" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; border-radius:8px; border:1px solid var(--slate-200); text-decoration:none; color:inherit; transition:background .15s" onmouseover="this.style.background='var(--slate-50)'" onmouseout="this.style.background='white'">
+            <div style="width:32px; height:32px; border-radius:8px; background:var(--slate-100); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:${p.color}">
+              <i data-lucide="${p.icon}" class="w-4 h-4"></i>
+            </div>
+            <div style="flex:1; font-size:0.875rem">${p.text}</div>
+            <i data-lucide="arrow-right" class="w-4 h-4" style="color:var(--slate-400)"></i>
+          </a>`).join('');
+      }
+
+      // Aktivitas
+      const guruMap = {};
+      guruList.forEach(g => guruMap[g.id] = g.nama);
+
+      const list = document.getElementById('aktivitasList');
+      if (aktivitas.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state" style="padding:2rem">
+            <div class="empty-state-icon" style="width:44px; height:44px"><i data-lucide="inbox" class="w-5 h-5"></i></div>
+            <div style="font-size:0.875rem; color:var(--slate-500)">Belum ada aktivitas supervisi</div>
+          </div>`;
+      } else {
+        list.innerHTML = aktivitas.map((a, i) => `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:0.75rem 0; ${i < aktivitas.length - 1 ? 'border-bottom:1px solid var(--slate-100)' : ''}">
+            <div style="display:flex; align-items:center; gap:0.75rem">
+              <div style="width:32px; height:32px; border-radius:8px; background:var(--slate-100); color:var(--slate-600); display:flex; align-items:center; justify-content:center">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <div style="font-size:0.875rem; font-weight:500; color:var(--slate-900)">${escapeHtml(guruMap[a.guru_id] || 'Guru')}</div>
+                <div style="font-size:0.75rem; color:var(--slate-500)">${formatTanggal(a.tanggal_mulai || a.created_at)}</div>
+              </div>
+            </div>
+            <span class="badge ${statusBadge(a.status).cls}">${statusBadge(a.status).label}</span>
+          </div>`).join('');
+      }
+
+      refreshIcons();
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal memuat dashboard: ' + err.message, 'error');
+    }
+  }
+
+  function statusBadge(s) {
+    if (s === 'selesai') return { cls: 'badge-success', label: 'Selesai' };
+    if (s === 'draft') return { cls: 'badge-neutral', label: 'Draft' };
+    if (s === 'pra_observasi') return { cls: 'badge-info', label: 'Pra-Observasi' };
+    if (s === 'observasi') return { cls: 'badge-warning', label: 'Observasi' };
+    if (s === 'pasca_observasi') return { cls: 'badge-warning', label: 'Pasca-Observasi' };
+    return { cls: 'badge-neutral', label: s };
+  }
+</script>
+</body>
+</html>
