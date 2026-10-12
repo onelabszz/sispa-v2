@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Kelola Sekolah</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<!-- ====== KONTEN HALAMAN ====== -->
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Kelola Sekolah</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">
+      Tambah, edit, dan kelola data sekolah
+    </p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+    <button id="btnAdd" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      <span>Tambah Sekolah</span>
+    </button>
+  </div>
+</div>
+
+<!-- Statistik ringkas -->
+<div id="miniStats" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem; margin-bottom:1.5rem"></div>
+
+<!-- Filter -->
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body" style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:0.75rem; align-items:center">
+    <div style="position:relative">
+      <span style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--slate-400)">
+        <i data-lucide="search" class="w-4 h-4"></i>
+      </span>
+      <input type="text" id="searchInput" class="input" style="padding-left:2.4rem" placeholder="Cari sekolah / NPSN / kecamatan..." />
+    </div>
+    <select id="filterJenjang" class="select">
+      <option value="">Semua Jenjang</option>
+      <option value="SD">SD</option>
+      <option value="SMP">SMP</option>
+      <option value="SMA">SMA</option>
+      <option value="SMK">SMK</option>
+      <option value="SLB">SLB</option>
+      <option value="Dinas">Dinas</option>
+    </select>
+    <select id="filterStatus" class="select">
+      <option value="">Semua Status</option>
+      <option value="aktif">Aktif</option>
+      <option value="nonaktif">Nonaktif</option>
+    </select>
+    <button id="btnReset" class="btn btn-ghost">Reset</button>
+  </div>
+</div>
+
+<!-- Tabel -->
+<div class="card" style="overflow:hidden">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="building-2" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Daftar Sekolah</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+    </div>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Sekolah</th>
+          <th style="text-align:center">Jenjang</th>
+          <th>Kecamatan</th>
+          <th style="text-align:center">Status</th>
+          <th style="text-align:right; width:140px">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="building-2" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada sekolah</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Tambahkan sekolah pertama</p>
+  </div>
+  <div id="noResultState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="search-x" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Tidak ada hasil</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Coba ubah filter atau kata kunci</p>
+  </div>
+</div>
+
+<!-- ====== END KONTEN ====== -->
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/sekolah.js"></script>
+<script>
+  // ===== STATE =====
+  let allItems = [];
+  let filterText = '';
+  let filterJenjang = '';
+  let filterStatus = '';
+
+  // ===== INIT =====
+  initPage('admin', 'sekolah', () => {
+    loadData();
+  });
+
+  async function loadData() {
+    await withLoading('Memuat data sekolah...', async () => {
+      try {
+        allItems = await SekolahAPI.list();
+        renderStats();
+        renderTable();
+      } catch (err) {
+        showToast('Gagal memuat data: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderStats() {
+    const total = allItems.length;
+    const aktif = allItems.filter(s => s.status === 'aktif').length;
+    const nonaktif = total - aktif;
+
+    const jenjang = {};
+    allItems.forEach(s => jenjang[s.jenjang] = (jenjang[s.jenjang] || 0) + 1);
+    const jenjangStr = Object.keys(jenjang).map(k => k + ': ' + jenjang[k]).join(' · ');
+
+    document.getElementById('miniStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe; color:#1e40af"><i data-lucide="building-2" class="w-5 h-5"></i></div>
+        <div>
+          <div style="font-size:0.75rem; color:var(--slate-500)">Total</div>
+          <div style="font-size:1.25rem; font-weight:700; color:var(--slate-900)">${total}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
+        <div>
+          <div style="font-size:0.75rem; color:var(--slate-500)">Aktif</div>
+          <div style="font-size:1.25rem; font-weight:700; color:var(--slate-900)">${aktif}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="x-circle" class="w-5 h-5"></i></div>
+        <div>
+          <div style="font-size:0.75rem; color:var(--slate-500)">Nonaktif</div>
+          <div style="font-size:1.25rem; font-weight:700; color:var(--slate-900)">${nonaktif}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="layers" class="w-5 h-5"></i></div>
+        <div style="min-width:0">
+          <div style="font-size:0.75rem; color:var(--slate-500)">Jenjang</div>
+          <div style="font-size:0.75rem; font-weight:600; color:var(--slate-900); margin-top:0.25rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${jenjangStr || '—'}</div>
+        </div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+    const noResult = document.getElementById('noResultState');
+    const wrap = tbody.closest('.card').querySelector('div[style*="overflow-x"]');
+
+    wrap.style.display = 'none';
+    empty.classList.add('hidden');
+    noResult.classList.add('hidden');
+
+    if (!allItems.length) {
+      empty.classList.remove('hidden');
+      document.getElementById('resultCount').textContent = 0;
+      refreshIcons();
+      return;
+    }
+
+    let filtered = allItems.slice();
+    if (filterText) {
+      const q = filterText.toLowerCase();
+      filtered = filtered.filter(s =>
+        (s.nama || '').toLowerCase().includes(q) ||
+        (s.npsn || '').includes(q) ||
+        (s.kecamatan || '').toLowerCase().includes(q)
+      );
+    }
+    if (filterJenjang) filtered = filtered.filter(s => s.jenjang === filterJenjang);
+    if (filterStatus) filtered = filtered.filter(s => s.status === filterStatus);
+
+    document.getElementById('resultCount').textContent = filtered.length + ' / ' + allItems.length;
+
+    if (!filtered.length) {
+      noResult.classList.remove('hidden');
+      refreshIcons();
+      return;
+    }
+    wrap.style.display = 'block';
+
+    tbody.innerHTML = filtered.map(s => {
+      const statusCls = s.status === 'aktif' ? 'badge-success' : 'badge-neutral';
+      const jenjangCls = s.jenjang === 'Dinas' ? 'badge-warning' : 'badge-neutral';
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.75rem">
+              <div style="width:36px; height:36px; border-radius:8px; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.875rem; flex-shrink:0">
+                ${escapeHtml((s.nama || 'S').charAt(0).toUpperCase())}
+              </div>
+              <div style="min-width:0">
+                <div style="font-weight:500; color:var(--slate-900)">${escapeHtml(s.nama)}</div>
+                <div class="text-mono" style="font-size:0.75rem; color:var(--slate-500)">${escapeHtml(s.npsn)}</div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center"><span class="badge ${jenjangCls}">${escapeHtml(s.jenjang || '-')}</span></td>
+          <td style="font-size:0.875rem">${escapeHtml(s.kecamatan || '—')}</td>
+          <td style="text-align:center"><span class="badge ${statusCls}">${escapeHtml(s.status)}</span></td>
+          <td style="text-align:right; white-space:nowrap">
+            <button class="icon-btn" data-edit="${escapeHtml(s.npsn)}" title="Edit">
+              ${icon('pencil', 'w-4 h-4')}
+            </button>
+            ${s.status === 'aktif' && s.jenjang !== 'Dinas' ? `
+              <button class="icon-btn" style="color:var(--danger)" data-del="${escapeHtml(s.npsn)}" title="Nonaktifkan">
+                ${icon('x-circle', 'w-4 h-4')}
+              </button>` : ''}
+            ${s.status === 'nonaktif' ? `
+              <button class="icon-btn" style="color:var(--success)" data-aktif="${escapeHtml(s.npsn)}" title="Aktifkan">
+                ${icon('check-circle', 'w-4 h-4')}
+              </button>` : ''}
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Bind events
+    tbody.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.edit)));
+    tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => doSoftDelete(b.dataset.del)));
+    tbody.querySelectorAll('[data-aktif]').forEach(b => b.addEventListener('click', () => doActivate(b.dataset.aktif)));
+
+    refreshIcons();
+  }
+
+  // ===== MODAL FORM =====
+  document.getElementById('btnAdd').addEventListener('click', () => openForm());
+
+  function openForm(s) {
+    const isEdit = !!s;
+    openModal({
+      title: isEdit ? 'Edit Sekolah' : 'Tambah Sekolah',
+      maxWidth: '640px',
+      body: `
+        <form id="sekolahForm" style="display:flex; flex-direction:column; gap:1rem">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+            <div>
+              <label class="label" for="fNpsn">NPSN <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="fNpsn" class="input text-mono" required
+                     value="${isEdit ? escapeHtml(s.npsn) : ''}"
+                     ${isEdit ? 'disabled' : ''}
+                     placeholder="8 digit" maxlength="8" />
+            </div>
+            <div>
+              <label class="label" for="fJenjang">Jenjang <span style="color:var(--danger)">*</span></label>
+              <select id="fJenjang" class="select" required>
+                <option value="">— Pilih —</option>
+                <option value="SD" ${isEdit && s.jenjang === 'SD' ? 'selected' : ''}>SD</option>
+                <option value="SMP" ${isEdit && s.jenjang === 'SMP' ? 'selected' : ''}>SMP</option>
+                <option value="SMA" ${isEdit && s.jenjang === 'SMA' ? 'selected' : ''}>SMA</option>
+                <option value="SMK" ${isEdit && s.jenjang === 'SMK' ? 'selected' : ''}>SMK</option>
+                <option value="SLB" ${isEdit && s.jenjang === 'SLB' ? 'selected' : ''}>SLB</option>
+                <option value="Dinas" ${isEdit && s.jenjang === 'Dinas' ? 'selected' : ''}>Dinas</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="fNama">Nama Sekolah <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="fNama" class="input" required
+                   value="${isEdit ? escapeHtml(s.nama) : ''}"
+                   placeholder="Contoh: SDN 1 Sukamaju" />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem">
+            <div>
+              <label class="label" for="fKec">Kecamatan</label>
+              <input type="text" id="fKec" class="input" value="${isEdit ? escapeHtml(s.kecamatan || '') : ''}" />
+            </div>
+            <div>
+              <label class="label" for="fKab">Kabupaten</label>
+              <input type="text" id="fKab" class="input" value="${isEdit ? escapeHtml(s.kabupaten || '') : ''}" />
+            </div>
+            <div>
+              <label class="label" for="fProv">Provinsi</label>
+              <input type="text" id="fProv" class="input" value="${isEdit ? escapeHtml(s.provinsi || '') : ''}" />
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="fAlamat">Alamat</label>
+            <input type="text" id="fAlamat" class="input" value="${isEdit ? escapeHtml(s.alamat || '') : ''}" />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+            <div>
+              <label class="label" for="fTelp">Telepon</label>
+              <input type="text" id="fTelp" class="input" value="${isEdit ? escapeHtml(s.telepon || '') : ''}" />
+            </div>
+            <div>
+              <label class="label" for="fEmail">Email</label>
+              <input type="email" id="fEmail" class="input" value="${isEdit ? escapeHtml(s.email || '') : ''}" />
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="fLogo">URL Logo</label>
+            <input type="url" id="fLogo" class="input" value="${isEdit ? escapeHtml(s.logo_url || '') : ''}" placeholder="https://..." />
+          </div>
+        </form>`,
+      footer: `
+        <button class="btn btn-secondary" data-close>Batal</button>
+        <button class="btn btn-primary" id="btnSave">
+          ${icon('save', 'w-4 h-4')}<span>Simpan</span>
+        </button>`
+    });
+
+    document.getElementById('btnSave').addEventListener('click', () => saveSekolah(isEdit));
+    setTimeout(() => document.getElementById('fNpsn').focus(), 100);
+  }
+
+  function openEdit(npsn) {
+    const s = allItems.find(x => x.npsn === npsn);
+    if (s) openForm(s);
+  }
+
+  async function saveSekolah(isEdit) {
+    const btn = document.getElementById('btnSave');
+    const npsn = isEdit ? document.getElementById('fNpsn').value : document.getElementById('fNpsn').value.trim();
+    const nama = document.getElementById('fNama').value.trim();
+    const jenjang = document.getElementById('fJenjang').value;
+
+    if (!isEdit && !/^\d{8}$/.test(npsn)) {
+      return showToast('NPSN harus 8 digit angka', 'error');
+    }
+    if (!nama) return showToast('Nama sekolah wajib diisi', 'error');
+    if (!jenjang) return showToast('Jenjang wajib dipilih', 'error');
+
+    const payload = {
+      nama,
+      jenjang,
+      kecamatan: document.getElementById('fKec').value.trim(),
+      kabupaten: document.getElementById('fKab').value.trim(),
+      provinsi: document.getElementById('fProv').value.trim(),
+      alamat: document.getElementById('fAlamat').value.trim(),
+      telepon: document.getElementById('fTelp').value.trim(),
+      email: document.getElementById('fEmail').value.trim(),
+      logo_url: document.getElementById('fLogo').value.trim()
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+    refreshIcons();
+
+    try {
+      if (isEdit) {
+        await SekolahAPI.update(npsn, payload);
+        closeModal();
+        showToast('Data sekolah diperbarui', 'success');
+      } else {
+        await SekolahAPI.create({ ...payload, npsn });
+        closeModal();
+        showToast('Sekolah ditambahkan', 'success');
+      }
+      await loadData();
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan</span>`;
+      refreshIcons();
+      showToast('Gagal menyimpan: ' + err.message, 'error');
+    }
+  }
+
+  async function doSoftDelete(npsn) {
+    const s = allItems.find(x => x.npsn === npsn);
+    if (!s) return;
+    const ok = await confirmAction(
+      'Nonaktifkan sekolah?',
+      `"${s.nama}" tidak akan muncul di daftar aktif.`,
+      { confirmText: 'Ya, nonaktifkan', danger: true }
+    );
+    if (!ok) return;
+
+    await withLoading('Menonaktifkan...', async () => {
+      try {
+        await SekolahAPI.softDelete(npsn);
+        showToast('Sekolah dinonaktifkan', 'success');
+        await loadData();
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  async function doActivate(npsn) {
+    const s = allItems.find(x => x.npsn === npsn);
+    if (!s) return;
+    await withLoading('Mengaktifkan...', async () => {
+      try {
+        await SekolahAPI.update(npsn, { nama: s.nama, jenjang: s.jenjang, status: 'aktif',
+          kecamatan: s.kecamatan, kabupaten: s.kabupaten, provinsi: s.provinsi,
+          alamat: s.alamat, telepon: s.telepon, email: s.email, logo_url: s.logo_url });
+        showToast('Sekolah diaktifkan', 'success');
+        await loadData();
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // ===== FILTER & SEARCH =====
+  let debounceSearch = null;
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    filterText = e.target.value;
+    clearTimeout(debounceSearch);
+    debounceSearch = setTimeout(renderTable, 300);
+  });
+  document.getElementById('filterJenjang').addEventListener('change', (e) => {
+    filterJenjang = e.target.value;
+    renderTable();
+  });
+  document.getElementById('filterStatus').addEventListener('change', (e) => {
+    filterStatus = e.target.value;
+    renderTable();
+  });
+  document.getElementById('btnReset').addEventListener('click', () => {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterJenjang').value = '';
+    document.getElementById('filterStatus').value = '';
+    filterText = filterJenjang = filterStatus = '';
+    renderTable();
+  });
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+</script>
+</body>
+</html>
