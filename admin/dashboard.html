@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Dashboard Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<!-- ====== KONTEN HALAMAN (isi di sini) ====== -->
+<div style="margin-bottom:1.5rem">
+  <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Dashboard Admin</h1>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Selamat datang, <span id="namaAdmin">—</span></p>
+</div>
+
+<div style="background:white; border:1px solid var(--slate-200); border-radius:14px; padding:2rem; text-align:center">
+  <p style="color:var(--slate-500)">Konten Dashboard akan diisi di Sprint berikutnya</p>
+</div>
+<!-- ====== END KONTEN ====== -->
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script>
+  initPage('admin', 'dashboard', (user) => {
+    document.getElementById('namaAdmin').textContent = user.nama || user.email;
+  });
+</script>
+</body>
+</html>
