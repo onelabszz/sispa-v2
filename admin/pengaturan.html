@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Pengaturan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="margin-bottom:1.5rem">
+  <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Pengaturan</h1>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Konfigurasi global aplikasi SISPA</p>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr)); gap:1.5rem; margin-bottom:2rem">
+
+  <!-- Kartu: Tahun Ajaran & Semester -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="calendar" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Tahun Ajaran & Semester Aktif</h2>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="padding:0.75rem; border-radius:8px; background:var(--brand-50); border:1px solid var(--brand-100); font-size:0.75rem; color:var(--brand-900); margin-bottom:1rem; line-height:1.5">
+        Nilai ini menjadi default saat KS membuat program supervisi baru.
+      </div>
+      <form id="formPeriode" style="display:flex; flex-direction:column; gap:1rem">
+        <div>
+          <label class="label">Tahun Ajaran</label>
+          <input type="text" id="pTahunAjaran" class="input text-mono" placeholder="2025/2026" />
+        </div>
+        <div>
+          <label class="label">Semester Aktif</label>
+          <select id="pSemester" class="select">
+            <option value="Ganjil">Ganjil</option>
+            <option value="Genap">Genap</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Nama Dinas</label>
+          <input type="text" id="pNamaDinas" class="input" placeholder="Dinas Pendidikan Kabupaten..." />
+        </div>
+        <div style="display:flex; justify-content:flex-end">
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Simpan</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Kartu: Ambang Batas Analisis -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="sliders" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Ambang Batas Insight</h2>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="padding:0.75rem; border-radius:8px; background:#fef3c7; border:1px solid #fde68a; font-size:0.75rem; color:#92400e; margin-bottom:1rem; line-height:1.5">
+        Persentase yang dipakai untuk memunculkan insight di halaman Analisis PM & KKA.
+      </div>
+      <form id="formAmbang" style="display:flex; flex-direction:column; gap:1rem">
+        <div>
+          <label class="label">Batas "Konsisten" (%)</label>
+          <input type="number" id="aKonsisten" class="input" min="50" max="100" placeholder="70" />
+          <div style="font-size:0.7rem; color:var(--slate-500); margin-top:0.25rem">Insight hijau jika prinsip diterapkan ≥ nilai ini</div>
+        </div>
+        <div>
+          <label class="label">Batas "Jarang" (%)</label>
+          <input type="number" id="aJarang" class="input" min="0" max="100" placeholder="40" />
+          <div style="font-size:0.7rem; color:var(--slate-500); margin-top:0.25rem">Insight kuning jika prinsip diterapkan ≤ nilai ini</div>
+        </div>
+        <div>
+          <label class="label">Target KKA (%)</label>
+          <input type="number" id="aKkaTarget" class="input" min="0" max="100" placeholder="50" />
+          <div style="font-size:0.7rem; color:var(--slate-500); margin-top:0.25rem">Insight hijau jika integrasi KKA ≥ nilai ini</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end">
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Simpan</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Kartu: Info Sistem -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="info" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Info Sistem</h2>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="infoSistem" style="font-size:0.875rem; color:var(--slate-600)">Memuat...</div>
+    </div>
+  </div>
+
+  <!-- Kartu: Aksi Admin -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="wrench" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Aksi Admin</h2>
+      </div>
+    </div>
+    <div class="card-body" style="display:flex; flex-direction:column; gap:0.75rem">
+      <button id="btnBersihkanSesi" class="btn btn-secondary" style="justify-content:flex-start">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+        <span>Bersihkan Sesi Kedaluwarsa</span>
+      </button>
+      <div style="font-size:0.7rem; color:var(--slate-500)">
+        Hapus baris di tabel <code>sessions</code> yang sudah kedaluwarsa (khusus backend GAS).
+        Untuk Supabase, sesi otomatis dikelola Auth.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script>
+  const PENGATURAN_DEFAULTS = {
+    tahun_ajaran: '2025/2026',
+    semester: 'Ganjil',
+    nama_dinas: '',
+    ambang_konsisten: '70',
+    ambang_jarang: '40',
+    kka_target: '50'
+  };
+
+  let settings = {};
+
+  initPage('admin', 'pengaturan', async (user) => {
+    await loadSettings();
+    await loadInfoSistem();
+  });
+
+  async function loadSettings() {
+    await withLoading('Memuat pengaturan...', async () => {
+      try {
+        const { data, error } = await sb.from('pengaturan').select('*');
+        if (error) throw new Error(error.message);
+
+        settings = { ...PENGATURAN_DEFAULTS };
+        (data || []).forEach(row => {
+          settings[row.key] = row.value;
+        });
+
+        // Isi form
+        document.getElementById('pTahunAjaran').value = settings.tahun_ajaran;
+        document.getElementById('pSemester').value = settings.semester;
+        document.getElementById('pNamaDinas').value = settings.nama_dinas;
+        document.getElementById('aKonsisten').value = settings.ambang_konsisten;
+        document.getElementById('aJarang').value = settings.ambang_jarang;
+        document.getElementById('aKkaTarget').value = settings.kka_target;
+      } catch (err) {
+        showToast('Gagal memuat pengaturan: ' + err.message, 'error');
+      }
+    });
+  }
+
+  async function loadInfoSistem() {
+    try {
+      const [
+        sekolahCount, guruCount, usersCount, supervisiCount
+      ] = await Promise.all([
+        sb.from('sekolah').select('npsn', { count: 'exact', head: true }),
+        sb.from('guru').select('id', { count: 'exact', head: true }).eq('status', 'aktif'),
+        sb.from('profiles').select('id', { count: 'exact', head: true }),
+        sb.from('supervisi').select('id', { count: 'exact', head: true })
+      ]);
+
+      document.getElementById('infoSistem').innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:0.5rem">
+          <div style="display:flex; justify-content:space-between">
+            <span>Sekolah</span>
+            <strong>${sekolahCount.count || 0}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between">
+            <span>Guru aktif</span>
+            <strong>${guruCount.count || 0}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between">
+            <span>Users</span>
+            <strong>${usersCount.count || 0}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between">
+            <span>Supervisi</span>
+            <strong>${supervisiCount.count || 0}</strong>
+          </div>
+          <hr style="border:none; border-top:1px solid var(--slate-100); margin:0.5rem 0">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--slate-500)">
+            <span>Versi aplikasi</span>
+            <strong>${SISPA_CONFIG.APP_VERSION || '2.0.0'}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--slate-500)">
+            <span>Supabase URL</span>
+            <strong style="font-size:0.7rem; overflow:hidden; text-overflow:ellipsis; max-width:200px" class="text-mono">${SISPA_CONFIG.SUPABASE_URL.replace('https://','').split('.')[0]}.supabase.co</strong>
+          </div>
+        </div>`;
+    } catch (err) {
+      document.getElementById('infoSistem').innerHTML = '<div style="color:var(--danger)">Gagal memuat info sistem</div>';
+    }
+  }
+
+  // Save pengaturan umum — pakai upsert per key
+  async function upsertSetting(key, value) {
+    // Cek apakah sudah ada
+    const { data: existing } = await sb
+      .from('pengaturan')
+      .select('key')
+      .eq('key', key)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await sb
+        .from('pengaturan')
+        .update({ value: String(value) })
+        .eq('key', key);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await sb
+        .from('pengaturan')
+        .insert([{ key, value: String(value) }]);
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  document.getElementById('formPeriode').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = 'Menyimpan...';
+
+    try {
+      await upsertSetting('tahun_ajaran', document.getElementById('pTahunAjaran').value.trim());
+      await upsertSetting('semester', document.getElementById('pSemester').value);
+      await upsertSetting('nama_dinas', document.getElementById('pNamaDinas').value.trim());
+      showToast('Tahun ajaran disimpan', 'success');
+      await loadSettings();
+    } catch (err) {
+      showToast('Gagal: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = orig;
+      refreshIcons();
+    }
+  });
+
+  document.getElementById('formAmbang').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = 'Menyimpan...';
+
+    try {
+      const k = parseInt(document.getElementById('aKonsisten').value);
+      const j = parseInt(document.getElementById('aJarang').value);
+      const t = parseInt(document.getElementById('aKkaTarget').value);
+
+      if (isNaN(k) || k < 0 || k > 100) throw new Error('Batas konsisten harus 0–100');
+      if (isNaN(j) || j < 0 || j > 100) throw new Error('Batas jarang harus 0–100');
+      if (isNaN(t) || t < 0 || t > 100) throw new Error('Target KKA harus 0–100');
+      if (j >= k) throw new Error('Batas "jarang" harus lebih kecil dari "konsisten"');
+
+      await upsertSetting('ambang_konsisten', k);
+      await upsertSetting('ambang_jarang', j);
+      await upsertSetting('kka_target', t);
+      showToast('Ambang batas disimpan', 'success');
+      await loadSettings();
+    } catch (err) {
+      showToast('Gagal: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = orig;
+      refreshIcons();
+    }
+  });
+
+  document.getElementById('btnBersihkanSesi').addEventListener('click', async () => {
+    const ok = await confirmAction(
+      'Bersihkan sesi kedaluwarsa?',
+      'Aksi ini hanya relevan untuk backend GAS. Di Supabase, sesi otomatis dikelola.',
+      { confirmText: 'Ya, bersihkan' }
+    );
+    if (!ok) return;
+
+    try {
+      const nowIso = new Date().toISOString();
+      const { error } = await sb
+        .from('sessions')
+        .delete()
+        .lt('expires_at', nowIso);
+
+      if (error) {
+        showToast('Tidak ada tabel sessions (normal untuk Supabase)', 'info');
+      } else {
+        showToast('Sesi kedaluwarsa dibersihkan', 'success');
+      }
+    } catch (err) {
+      showToast('Tabel sessions tidak ditemukan (normal untuk Supabase)', 'info');
+    }
+  });
+</script>
+</body>
+</html>
