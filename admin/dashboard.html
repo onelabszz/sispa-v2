@@ -11,15 +11,84 @@
 </head>
 <body>
 
-<!-- ====== KONTEN HALAMAN (isi di sini) ====== -->
-<div style="margin-bottom:1.5rem">
+<!-- ====== KONTEN HALAMAN ====== -->
+
+<div style="margin-bottom: 1.5rem">
   <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Dashboard Admin</h1>
-  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Selamat datang, <span id="namaAdmin">—</span></p>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">
+    Ringkasan data SISPA
+  </p>
 </div>
 
-<div style="background:white; border:1px solid var(--slate-200); border-radius:14px; padding:2rem; text-align:center">
-  <p style="color:var(--slate-500)">Konten Dashboard akan diisi di Sprint berikutnya</p>
+<div id="statGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:2rem">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dbeafe; color:#1e40af">
+      <i data-lucide="building-2" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Total Sekolah</div>
+      <div id="statSekolah" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dcfce7; color:#166534">
+      <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Sekolah Aktif</div>
+      <div id="statAktif" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fef3c7; color:#92400e">
+      <i data-lucide="x-circle" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Nonaktif</div>
+      <div id="statNonaktif" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">—</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#e0e7ff; color:#4338ca">
+      <i data-lucide="layers" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Jenjang</div>
+      <div id="statJenjang" style="font-size:0.875rem; font-weight:600; color:var(--slate-900); margin-top:0.5rem">—</div>
+    </div>
+  </div>
 </div>
+
+<div class="card">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="zap" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Aksi Cepat</h2>
+    </div>
+  </div>
+  <div class="card-body" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem">
+    <a href="/sispa-v2/admin/sekolah.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="building-2" class="w-4 h-4"></i>
+      <span>Kelola Sekolah</span>
+    </a>
+    <a href="/sispa-v2/admin/users.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="users" class="w-4 h-4"></i>
+      <span>Kelola Users</span>
+    </a>
+    <a href="/sispa-v2/admin/guru.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+      <span>Kelola Guru</span>
+    </a>
+    <a href="/sispa-v2/admin/pengaturan.html" class="btn btn-secondary" style="justify-content:flex-start; padding:1rem">
+      <i data-lucide="settings" class="w-4 h-4"></i>
+      <span>Pengaturan</span>
+    </a>
+  </div>
+</div>
+
 <!-- ====== END KONTEN ====== -->
 
 <script src="/sispa-v2/assets/js/config.js"></script>
@@ -27,9 +96,20 @@
 <script src="/sispa-v2/assets/js/auth.js"></script>
 <script src="/sispa-v2/assets/js/ui.js"></script>
 <script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/sekolah.js"></script>
 <script>
-  initPage('admin', 'dashboard', (user) => {
-    document.getElementById('namaAdmin').textContent = user.nama || user.email;
+  initPage('admin', 'dashboard', async (user) => {
+    try {
+      const s = await SekolahAPI.stats();
+      document.getElementById('statSekolah').textContent = s.total;
+      document.getElementById('statAktif').textContent = s.aktif;
+      document.getElementById('statNonaktif').textContent = s.nonaktif;
+
+      const jenjangStr = Object.keys(s.jenjang).map(k => k + ': ' + s.jenjang[k]).join(' · ');
+      document.getElementById('statJenjang').textContent = jenjangStr || '—';
+    } catch (err) {
+      showToast('Gagal memuat statistik: ' + err.message, 'error');
+    }
   });
 </script>
 </body>
