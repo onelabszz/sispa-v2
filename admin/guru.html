@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Kelola Guru</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Kelola Guru</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Data guru lintas sekolah</p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+    <button id="btnImport" class="btn btn-secondary">
+      <i data-lucide="upload" class="w-4 h-4"></i>
+      <span>Impor CSV</span>
+    </button>
+    <button id="btnAdd" class="btn btn-primary">
+      <i data-lucide="user-plus" class="w-4 h-4"></i>
+      <span>Tambah Guru</span>
+    </button>
+  </div>
+</div>
+
+<div id="miniStats" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:1rem; margin-bottom:1.5rem"></div>
+
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body" style="display:grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap:0.75rem; align-items:center">
+    <div style="position:relative">
+      <span style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--slate-400)">
+        <i data-lucide="search" class="w-4 h-4"></i>
+      </span>
+      <input type="text" id="searchInput" class="input" style="padding-left:2.4rem" placeholder="Cari nama / NIP / mapel..." />
+    </div>
+    <select id="filterSekolah" class="select">
+      <option value="">Semua Sekolah</option>
+    </select>
+    <select id="filterPegawai" class="select">
+      <option value="">Semua Kepegawaian</option>
+      <option value="PNS">PNS</option>
+      <option value="PPPK">PPPK</option>
+      <option value="Non ASN">Non ASN</option>
+    </select>
+    <button id="btnReset" class="btn btn-ghost">Reset</button>
+  </div>
+</div>
+
+<div class="card" style="overflow:hidden">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="graduation-cap" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Daftar Guru</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+    </div>
+  </div>
+  <div id="tableWrap" style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Guru</th>
+          <th>Sekolah</th>
+          <th style="text-align:center">Kepegawaian</th>
+          <th>Kontak</th>
+          <th style="text-align:right; width:130px">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="graduation-cap" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada guru</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Tambahkan guru pertama</p>
+  </div>
+  <div id="noResultState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="search-x" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Tidak ada hasil</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Coba ubah filter</p>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/sekolah.js"></script>
+<script src="/sispa-v2/assets/js/api/guru.js"></script>
+<script>
+  let allItems = [];
+  let sekolahList = [];
+  let filterText = '';
+  let filterNpsn = '';
+  let filterPegawai = '';
+
+  initPage('admin', 'guru', async () => {
+    await Promise.all([loadSekolah(), loadData()]);
+  });
+
+  async function loadSekolah() {
+    try {
+      sekolahList = await SekolahAPI.list({ status: 'aktif' });
+      const sel = document.getElementById('filterSekolah');
+      sel.innerHTML = '<option value="">Semua Sekolah</option>';
+      sekolahList.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.npsn;
+        opt.textContent = s.nama;
+        sel.appendChild(opt);
+      });
+    } catch (err) {
+      showToast('Gagal memuat sekolah: ' + err.message, 'error');
+    }
+  }
+
+  async function loadData() {
+    await withLoading('Memuat data guru...', async () => {
+      try {
+        allItems = await GuruAPI.list();
+        renderStats();
+        renderTable();
+      } catch (err) {
+        showToast('Gagal memuat: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderStats() {
+    const total = allItems.length;
+    const pns = allItems.filter(g => g.status_kepegawaian === 'PNS').length;
+    const pppk = allItems.filter(g => g.status_kepegawaian === 'PPPK').length;
+    const nonAsn = allItems.filter(g => g.status_kepegawaian === 'Non ASN').length;
+    const sekolahUnik = new Set(allItems.map(g => g.npsn_sekolah)).size;
+
+    document.getElementById('miniStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="graduation-cap" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Total Guru</div><div style="font-size:1.25rem; font-weight:700">${total}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe; color:#1e40af"><i data-lucide="badge-check" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">PNS</div><div style="font-size:1.25rem; font-weight:700">${pns}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="badge-check" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">PPPK</div><div style="font-size:1.25rem; font-weight:700">${pppk}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#f1f5f9; color:#475569"><i data-lucide="badge" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Non ASN</div><div style="font-size:1.25rem; font-weight:700">${nonAsn}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="building-2" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Sekolah</div><div style="font-size:1.25rem; font-weight:700">${sekolahUnik}</div></div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const wrap = document.getElementById('tableWrap');
+    const empty = document.getElementById('emptyState');
+    const noResult = document.getElementById('noResultState');
+
+    wrap.style.display = 'none';
+    empty.classList.add('hidden');
+    noResult.classList.add('hidden');
+
+    if (!allItems.length) {
+      empty.classList.remove('hidden');
+      document.getElementById('resultCount').textContent = 0;
+      refreshIcons();
+      return;
+    }
+
+    let filtered = allItems.slice();
+    if (filterText) {
+      const q = filterText.toLowerCase();
+      filtered = filtered.filter(g =>
+        (g.nama || '').toLowerCase().includes(q) ||
+        (g.nip || '').includes(q) ||
+        (g.mapel || '').toLowerCase().includes(q)
+      );
+    }
+    if (filterNpsn) filtered = filtered.filter(g => g.npsn_sekolah === filterNpsn);
+    if (filterPegawai) filtered = filtered.filter(g => g.status_kepegawaian === filterPegawai);
+
+    document.getElementById('resultCount').textContent = filtered.length + ' / ' + allItems.length;
+
+    if (!filtered.length) {
+      noResult.classList.remove('hidden');
+      refreshIcons();
+      return;
+    }
+    wrap.style.display = 'block';
+
+    const pegCls = { 'PNS': 'badge-info', 'PPPK': 'badge-warning', 'Non ASN': 'badge-neutral' };
+
+    tbody.innerHTML = filtered.map(g => `
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:0.75rem">
+            <div style="width:36px; height:36px; border-radius:50%; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.875rem; flex-shrink:0">
+              ${escapeHtml((g.nama || 'G').charAt(0).toUpperCase())}
+            </div>
+            <div style="min-width:0">
+              <div style="font-weight:500; color:var(--slate-900)">${escapeHtml(g.nama)}</div>
+              <div style="font-size:0.75rem; color:var(--slate-500)">
+                ${g.nip ? 'NIP <span class="text-mono">' + escapeHtml(g.nip) + '</span> · ' : ''}${escapeHtml(g.mapel || '—')}${g.kelas ? ' · Kelas ' + escapeHtml(g.kelas) : ''}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:0.875rem">${escapeHtml(g.nama_sekolah || '—')}</td>
+        <td style="text-align:center">
+          ${g.status_kepegawaian
+            ? `<span class="badge ${pegCls[g.status_kepegawaian] || 'badge-neutral'}">${escapeHtml(g.status_kepegawaian)}</span>`
+            : '<span style="color:var(--slate-400); font-size:0.75rem">—</span>'}
+        </td>
+        <td style="font-size:0.75rem">
+          ${g.email ? `<div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${escapeHtml(g.email)}</div>` : '<span style="color:var(--slate-400)">—</span>'}
+        </td>
+        <td style="text-align:right; white-space:nowrap">
+          <button class="icon-btn" data-edit="${g.id}" title="Edit">${icon('pencil', 'w-4 h-4')}</button>
+          <button class="icon-btn" style="color:var(--danger)" data-del="${g.id}" title="Hapus">${icon('trash-2', 'w-4 h-4')}</button>
+        </td>
+      </tr>`).join('');
+
+    tbody.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.edit)));
+    tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => doDelete(b.dataset.del)));
+    refreshIcons();
+  }
+
+  // ===== FORM =====
+  document.getElementById('btnAdd').addEventListener('click', () => openForm());
+
+  function openForm(g) {
+    const isEdit = !!g;
+    openModal({
+      title: isEdit ? 'Edit Data Guru' : 'Tambah Guru',
+      maxWidth: '560px',
+      body: `
+        <form style="display:flex; flex-direction:column; gap:1rem">
+          ${!isEdit ? `
+            <div>
+              <label class="label" for="fSekolah">Sekolah <span style="color:var(--danger)">*</span></label>
+              <select id="fSekolah" class="select" required>
+                <option value="">— Pilih Sekolah —</option>
+                ${sekolahList.map(s => `<option value="${s.npsn}">${escapeHtml(s.nama)}</option>`).join('')}
+              </select>
+            </div>` : `
+            <div>
+              <label class="label">Sekolah</label>
+              <input type="text" class="input" value="${escapeHtml(g.nama_sekolah || '—')}" disabled />
+            </div>`}
+
+          <div>
+            <label class="label" for="fNama">Nama Lengkap & Gelar <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="fNama" class="input" required
+                   value="${isEdit ? escapeHtml(g.nama) : ''}"
+                   placeholder="Contoh: Budi Santoso, S.Pd" />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+            <div>
+              <label class="label" for="fNip">NIP</label>
+              <input type="text" id="fNip" class="input text-mono"
+                     value="${isEdit ? escapeHtml(g.nip || '') : ''}" />
+            </div>
+            <div>
+              <label class="label" for="fPeg">Status Kepegawaian</label>
+              <select id="fPeg" class="select">
+                <option value="">—</option>
+                <option value="PNS" ${isEdit && g.status_kepegawaian === 'PNS' ? 'selected' : ''}>PNS</option>
+                <option value="PPPK" ${isEdit && g.status_kepegawaian === 'PPPK' ? 'selected' : ''}>PPPK</option>
+                <option value="Non ASN" ${isEdit && g.status_kepegawaian === 'Non ASN' ? 'selected' : ''}>Non ASN</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:0.75rem">
+            <div>
+              <label class="label" for="fMapel">Mata Pelajaran</label>
+              <input type="text" id="fMapel" class="input"
+                     value="${isEdit ? escapeHtml(g.mapel || '') : ''}"
+                     placeholder="Contoh: Matematika" />
+            </div>
+            <div>
+              <label class="label" for="fKelas">Kelas</label>
+              <input type="text" id="fKelas" class="input"
+                     value="${isEdit ? escapeHtml(g.kelas || '') : ''}"
+                     placeholder="V" />
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="fEmailGuru">Email</label>
+            <input type="email" id="fEmailGuru" class="input"
+                   value="${isEdit ? escapeHtml(g.email || '') : ''}" />
+          </div>
+        </form>`,
+      footer: `
+        <button class="btn btn-secondary" data-close>Batal</button>
+        <button class="btn btn-primary" id="btnSave">
+          ${icon('save', 'w-4 h-4')}<span>Simpan</span>
+        </button>`
+    });
+
+    document.getElementById('btnSave').addEventListener('click', () => saveGuru(isEdit, g));
+    setTimeout(() => document.getElementById('fNama').focus(), 100);
+  }
+
+  function openEdit(id) {
+    const g = allItems.find(x => x.id === id);
+    if (g) openForm(g);
+  }
+
+  async function saveGuru(isEdit, existing) {
+    const btn = document.getElementById('btnSave');
+    const nama = document.getElementById('fNama').value.trim();
+
+    if (!nama) return showToast('Nama guru wajib diisi', 'error');
+
+    const payload = {
+      nama,
+      nip: document.getElementById('fNip').value.trim(),
+      status_kepegawaian: document.getElementById('fPeg').value,
+      mapel: document.getElementById('fMapel').value.trim(),
+      kelas: document.getElementById('fKelas').value.trim(),
+      email: document.getElementById('fEmailGuru').value.trim()
+    };
+
+    if (!isEdit) {
+      const npsn = document.getElementById('fSekolah').value;
+      if (!npsn) return showToast('Sekolah wajib dipilih', 'error');
+      payload.npsn_sekolah = npsn;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+    refreshIcons();
+
+    try {
+      if (isEdit) {
+        await GuruAPI.update(existing.id, payload);
+        closeModal();
+        showToast('Data guru diperbarui', 'success');
+      } else {
+        await GuruAPI.create(payload);
+        closeModal();
+        showToast('Guru ditambahkan', 'success');
+      }
+      await loadData();
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan</span>`;
+      refreshIcons();
+      showToast('Gagal: ' + err.message, 'error');
+    }
+  }
+
+  async function doDelete(id) {
+    const g = allItems.find(x => x.id === id);
+    if (!g) return;
+    const ok = await confirmAction(
+      'Hapus data guru?',
+      `"${g.nama}" akan dihapus dari daftar. Data supervisi terkait tetap tersimpan.`,
+      { confirmText: 'Ya, hapus', danger: true }
+    );
+    if (!ok) return;
+
+    await withLoading('Menghapus...', async () => {
+      try {
+        await GuruAPI.softDelete(id);
+        showToast('Guru dihapus', 'success');
+        await loadData();
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // ===== IMPORT CSV =====
+  document.getElementById('btnImport').addEventListener('click', openImportModal);
+
+  function openImportModal() {
+    openModal({
+      title: 'Impor Guru Massal',
+      maxWidth: '640px',
+      body: `
+        <div style="display:flex; flex-direction:column; gap:1rem">
+          <div style="padding:0.75rem; border-radius:8px; background:var(--brand-50); border:1px solid var(--brand-100); font-size:0.75rem; color:var(--brand-900)">
+            <div style="font-weight:600; margin-bottom:0.25rem">Format CSV (koma atau tab):</div>
+            <code class="text-mono" style="font-size:0.7rem; display:block; word-break:break-all">
+              NIP, Nama, Mapel, Kelas, Email, Status
+            </code>
+            <div style="margin-top:0.5rem">
+              <strong>Status</strong>: PNS / PPPK / Non ASN (opsional)
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="impSekolah">Sekolah Tujuan <span style="color:var(--danger)">*</span></label>
+            <select id="impSekolah" class="select">
+              <option value="">— Pilih Sekolah —</option>
+              ${sekolahList.map(s => `<option value="${s.npsn}">${escapeHtml(s.nama)}</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label class="label" for="csvInput">Paste Data CSV</label>
+            <textarea id="csvInput" rows="8" class="textarea text-mono" style="font-size:0.75rem"
+                      placeholder="198501012010011001, Budi Santoso S.Pd, Matematika, V, budi@sch.id, PNS
+198502022011012002, Siti Aminah S.Pd, IPA, VI, siti@sch.id, PPPK"></textarea>
+          </div>
+
+          <div>
+            <button type="button" id="btnPilihFile" class="btn btn-ghost" style="font-size:0.75rem">
+              ${icon('file-up', 'w-3.5 h-3.5')}<span>Atau pilih file .csv/.txt</span>
+            </button>
+            <input type="file" id="fileInput" accept=".csv,.txt" style="display:none" />
+          </div>
+
+          <div id="previewBox" class="hidden">
+            <div style="font-size:0.75rem; color:var(--slate-600); margin-bottom:0.5rem">
+              <span id="previewInfo">—</span>
+            </div>
+          </div>
+
+          <div id="importResult" class="hidden"></div>
+        </div>`,
+      footer: `
+        <button class="btn btn-secondary" data-close>Batal</button>
+        <button class="btn btn-primary" id="btnDoImport">
+          ${icon('upload', 'w-4 h-4')}<span>Impor</span>
+        </button>`
+    });
+
+    document.getElementById('btnPilihFile').addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById('csvInput').value = ev.target.result;
+      };
+      reader.readAsText(f);
+    });
+
+    document.getElementById('btnDoImport').addEventListener('click', doImport);
+  }
+
+  function parseCsv(raw) {
+    const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+      .split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (!lines.length) return [];
+
+    const sample = lines[0];
+    const tabCount = (sample.match(/\t/g) || []).length;
+    const commaCount = (sample.match(/,/g) || []).length;
+    const semiCount = (sample.match(/;/g) || []).length;
+    let delim = ',';
+    if (tabCount > commaCount && tabCount > semiCount) delim = '\t';
+    else if (semiCount > commaCount && semiCount > tabCount) delim = ';';
+
+    function splitLine(line) {
+      const out = []; let cur = ''; let q = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q;
+        } else if (ch === delim && !q) { out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+      out.push(cur);
+      return out.map(s => s.trim());
+    }
+
+    const first = splitLine(lines[0]).map(c => c.toLowerCase());
+    const hasHeader = first.some(c => ['nip', 'nama'].includes(c));
+    const start = hasHeader ? 1 : 0;
+
+    const rows = [];
+    for (let i = start; i < lines.length; i++) {
+      const c = splitLine(lines[i]);
+      rows.push({
+        nip: c[0] || '',
+        nama: c[1] || '',
+        mapel: c[2] || '',
+        kelas: c[3] || '',
+        email: c[4] || '',
+        status_kepegawaian: c[5] || ''
+      });
+    }
+    return rows;
+  }
+
+  async function doImport() {
+    const npsn = document.getElementById('impSekolah').value;
+    const raw = document.getElementById('csvInput').value.trim();
+
+    if (!npsn) return showToast('Pilih sekolah tujuan', 'error');
+    if (!raw) return showToast('Paste data CSV terlebih dahulu', 'error');
+
+    const rows = parseCsv(raw);
+    if (!rows.length) return showToast('Tidak ada baris yang terdeteksi', 'error');
+
+    const ok = await confirmAction(
+      `Impor ${rows.length} guru?`,
+      'Data akan ditambahkan ke sekolah yang dipilih.',
+      { confirmText: 'Ya, impor' }
+    );
+    if (!ok) return;
+
+    const btn = document.getElementById('btnDoImport');
+    btn.disabled = true;
+    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Mengimpor...</span>`;
+    refreshIcons();
+
+    try {
+      const res = await GuruAPI.importBulk(npsn, rows);
+      const resultBox = document.getElementById('importResult');
+      resultBox.classList.remove('hidden');
+      resultBox.innerHTML = `
+        <div style="padding:0.75rem; border-radius:8px; background:${res.errors.length ? '#fef3c7' : '#dcfce7'}; border:1px solid ${res.errors.length ? '#fde68a' : '#bbf7d0'}; font-size:0.875rem">
+          <div style="display:flex; align-items:center; gap:0.5rem; font-weight:600; margin-bottom:0.5rem">
+            ${icon(res.errors.length ? 'alert-triangle' : 'check-circle-2', 'w-4 h-4')}
+            <span>Hasil Impor</span>
+          </div>
+          <div><strong>Berhasil</strong>: ${res.inserted}</div>
+          ${res.errors.length ? `<div><strong>Error</strong>: ${res.errors.length}</div>` : ''}
+          ${res.errors.length ? `
+            <div style="margin-top:0.5rem; font-size:0.75rem; max-height:100px; overflow-y:auto">
+              ${res.errors.map(e => `<div>Baris ${e.line}: ${escapeHtml(e.message)}</div>`).join('')}
+            </div>` : ''}
+        </div>`;
+      showToast(res.inserted + ' guru berhasil diimpor', 'success');
+      await loadData();
+
+      btn.disabled = false;
+      btn.innerHTML = `${icon('check', 'w-4 h-4')}<span>Selesai — tutup</span>`;
+      btn.addEventListener('click', closeModal, { once: true });
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `${icon('upload', 'w-4 h-4')}<span>Impor</span>`;
+      refreshIcons();
+      showToast('Gagal impor: ' + err.message, 'error');
+    }
+  }
+
+  // ===== FILTER =====
+  let debounce = null;
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    filterText = e.target.value;
+    clearTimeout(debounce);
+    debounce = setTimeout(renderTable, 300);
+  });
+  document.getElementById('filterSekolah').addEventListener('change', (e) => { filterNpsn = e.target.value; renderTable(); });
+  document.getElementById('filterPegawai').addEventListener('change', (e) => { filterPegawai = e.target.value; renderTable(); });
+  document.getElementById('btnReset').addEventListener('click', () => {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterSekolah').value = '';
+    document.getElementById('filterPegawai').value = '';
+    filterText = filterNpsn = filterPegawai = '';
+    renderTable();
+  });
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+</script>
+</body>
+</html>
