@@ -41,7 +41,9 @@ const SISPA_NAV = {
     { key: 'program', href: '/sispa-v2/ks/program.html', label: 'Program Supervisi', icon: 'clipboard-list' },
     { key: 'pelaksanaan', href: '/sispa-v2/ks/pelaksanaan.html', label: 'Pelaksanaan', icon: 'play-circle' },
     { key: 'riwayat', href: '/sispa-v2/ks/riwayat.html', label: 'Riwayat', icon: 'history' },
-    { section: 'Bantuan' },
+{ section: 'Analitik' },
+{ key: 'analisis', href: '/sispa-v2/ks/analisis.html', label: 'Analisis PM & KKA', icon: 'bar-chart-3' },
+{ section: 'Bantuan' },
     { key: 'panduan', href: '/sispa-v2/panduan.html', label: 'Panduan', icon: 'book-open' }
   ],
   guru: [
