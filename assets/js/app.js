@@ -2,7 +2,15 @@
  * SISPA v2 — App Shell
  * Sidebar + Header + Routing + Role Menu
  */
-
+// Tambah di paling atas app.js (sebelum SISPA_NAV)
+(function injectFavicon() {
+  if (document.querySelector('link[rel="icon"]')) return;
+  const link = document.createElement('link');
+  link.rel = 'icon';
+  link.type = 'image/svg+xml';
+  link.href = '/sispa-v2/favicon.svg';
+  document.head.appendChild(link);
+})();
 /* ============================================================
    NAVIGATION CONFIG
    ============================================================ */
@@ -18,8 +26,6 @@ const SISPA_NAV = {
     { section: 'Sistem' },
     { key: 'audit', href: '/sispa-v2/admin/audit.html', label: 'Audit Log', icon: 'activity' },
     { key: 'pengaturan', href: '/sispa-v2/admin/pengaturan.html', label: 'Pengaturan', icon: 'settings' },
-    { section: 'Bantuan' },
-    { key: 'panduan', href: '/sispa-v2/panduan.html', label: 'Panduan', icon: 'book-open' }
   ],
   pengawas: [
     { section: 'Utama' },
@@ -28,8 +34,6 @@ const SISPA_NAV = {
     { key: 'profil-guru', href: '/sispa-v2/pengawas/profil-guru.html', label: 'Profil Guru', icon: 'compass' },
     { key: 'program', href: '/sispa-v2/pengawas/program.html', label: 'Program Supervisi', icon: 'clipboard-list' },
     { key: 'supervisi', href: '/sispa-v2/pengawas/supervisi.html', label: 'Semua Supervisi', icon: 'clipboard-check' },
-    { section: 'Bantuan' },
-    { key: 'panduan', href: '/sispa-v2/panduan.html', label: 'Panduan', icon: 'book-open' }
   ],
   ks: [
     { section: 'Utama' },
@@ -45,8 +49,6 @@ const SISPA_NAV = {
   { key: 'analisis', href: '/sispa-v2/ks/analisis.html', label: 'Analisis PM & KKA', icon: 'bar-chart-3' },
   { section: 'Akun' },
   { key: 'profil', href: '/sispa-v2/ks/profil.html', label: 'Profil Saya', icon: 'user-circle' },
-  { section: 'Bantuan' },
-  { key: 'panduan', href: '/sispa-v2/panduan.html', label: 'Panduan', icon: 'book-open' }
 ],
   guru: [
     { section: 'Utama' },
@@ -54,8 +56,6 @@ const SISPA_NAV = {
     { section: 'Supervisi Saya' },
     { key: 'riwayat', href: '/sispa-v2/guru/riwayat.html', label: 'Riwayat Supervisi', icon: 'history' },
     { key: 'rtl', href: '/sispa-v2/guru/rtl.html', label: 'Rencana Tindak Lanjut', icon: 'target' },
-    { section: 'Bantuan' },
-    { key: 'panduan', href: '/sispa-v2/panduan.html', label: 'Panduan', icon: 'book-open' }
   ]
 };
 
