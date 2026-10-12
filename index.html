@@ -3,196 +3,677 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SISPA v2 — Login</title>
+<title>SISPA — Masuk</title>
+<meta name="description" content="SISPA — Sistem Informasi Supervisi Pendidikan Akademik. Berbasis Modul 5: Supervisi Akademik pada Pembelajaran Mendalam termasuk Koding & Kecerdasan Artifisial." />
 <link rel="icon" type="image/svg+xml" href="/sispa-v2/favicon.svg" />
 <link rel="apple-touch-icon" href="/sispa-v2/favicon.svg" />
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="./assets/css/style.css" />
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  /* ============================================
+     LOGIN — Split Premium
+     ============================================ */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f8fafc; overflow-x: hidden; }
+
+  .login-wrap { display: flex; min-height: 100vh; }
+
+  /* ===== SISI KIRI: Branding ===== */
+  .brand-side {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+    color: white;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  /* Mesh gradient overlay */
+  .brand-side::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(99,102,241,.35) 0%, transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(139,92,246,.3) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(6,182,212,.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Grid pattern overlay */
+  .brand-side::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(circle at 50% 50%, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, black 20%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .brand-inner { position: relative; z-index: 2; display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
+
+  /* Decorative floating shapes */
+  .float-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(255,255,255,.08);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .shape-1 { width: 280px; height: 280px; top: -80px; right: -80px; animation: floatY 8s ease-in-out infinite; }
+  .shape-2 { width: 140px; height: 140px; bottom: 15%; right: 10%; animation: floatY 6s ease-in-out infinite 1s; }
+  .shape-3 { width: 90px; height: 90px; top: 45%; left: -30px; animation: floatY 7s ease-in-out infinite 2s; }
+
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+
+  /* Logo */
+  .logo-badge {
+    width: 56px; height: 56px;
+    background: rgba(255,255,255,.12);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  }
+
+  /* Hero text */
+  .hero-title {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem;
+  }
+  .hero-title .accent {
+    background: linear-gradient(90deg, #c7d2fe 0%, #a5b4fc 60%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero-sub {
+    font-size: 0.95rem;
+    color: #c7d2fe;
+    line-height: 1.65;
+    max-width: 440px;
+    margin: 0;
+  }
+
+  /* Feature list */
+  .feature-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.75rem; }
+  .feature-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+    transition: transform .2s, background .2s;
+  }
+  .feature-item:hover { transform: translateX(4px); background: rgba(255,255,255,.09); }
+  .feature-item .fi-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(165,180,252,.2);
+    color: #e0e7ff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .feature-item .fi-text { font-size: 0.85rem; line-height: 1.35; }
+  .feature-item .fi-text strong { font-weight: 600; }
+  .feature-item .fi-text span { color: #c7d2fe; font-size: 0.75rem; display: block; }
+
+  /* Quote */
+  .quote-card {
+    padding: 1rem 1.25rem;
+    background: rgba(255,255,255,.05);
+    border-left: 3px solid #a5b4fc;
+    border-radius: 0 10px 10px 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: #e0e7ff;
+    font-style: italic;
+    margin-top: 1.5rem;
+    max-width: 460px;
+  }
+  .quote-card .quote-author {
+    display: block;
+    margin-top: 0.5rem;
+    font-style: normal;
+    font-size: 0.72rem;
+    color: #a5b4fc;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  /* Footer brand */
+  .brand-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.72rem;
+    color: #c7d2fe;
+    gap: 1rem; flex-wrap: wrap;
+  }
+  .brand-footer .version-pill {
+    padding: 0.25rem 0.6rem;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+  }
+
+  /* ===== SISI KANAN: Form ===== */
+  .form-side {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: #f8fafc;
+    position: relative;
+  }
+
+  /* Mobile brand — hanya tampil < 1024px */
+  .mobile-brand {
+    display: none;
+    padding: 0 0 1.5rem;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .mobile-brand .mb-logo {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    box-shadow: 0 8px 20px rgba(79,70,229,.25);
+  }
+
+  .form-card {
+    width: 100%;
+    max-width: 420px;
+    animation: fadeSlideIn .5s ease both;
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-heading {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.35rem;
+    letter-spacing: -0.02em;
+  }
+  .form-subheading {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0 0 2rem;
+  }
+
+  /* Input dengan ikon */
+  .input-group { position: relative; margin-bottom: 1rem; }
+  .input-group .input-icon {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    transition: color .15s;
+  }
+  .input-group:focus-within .input-icon { color: #6366f1; }
+
+  .input-field {
+    width: 100%;
+    padding: 0.85rem 0.9rem 0.85rem 2.75rem;
+    font-size: 0.9rem;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    color: #0f172a;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    font-family: inherit;
+  }
+  .input-field::placeholder { color: #94a3b8; }
+  .input-field:hover { border-color: #cbd5e1; }
+  .input-field:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+  }
+  .input-field.has-toggle { padding-right: 2.75rem; }
+
+  .input-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.45rem;
+    letter-spacing: 0.01em;
+  }
+
+  .input-toggle {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: color .15s, background .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .input-toggle:hover { color: #6366f1; background: #eef2ff; }
+
+  /* Error box */
+  .error-box {
+    display: none;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.75rem 0.9rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: #991b1b;
+    margin-bottom: 1rem;
+    animation: shake .35s ease;
+  }
+  .error-box.show { display: flex; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+
+  /* Tombol masuk */
+  .btn-login {
+    position: relative;
+    width: 100%;
+    padding: 0.9rem 1.25rem;
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform .15s, box-shadow .2s;
+    box-shadow: 0 8px 20px rgba(79,70,229,.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: inherit;
+  }
+  .btn-login:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(79,70,229,.35);
+  }
+  .btn-login:active:not(:disabled) { transform: translateY(0); }
+  .btn-login:disabled { opacity: .7; cursor: not-allowed; }
+  .btn-login .btn-arrow {
+    transition: transform .25s;
+  }
+  .btn-login:hover:not(:disabled) .btn-arrow { transform: translateX(4px); }
+
+  /* Divider */
+  .divider-line {
+    display: flex; align-items: center; gap: 0.75rem;
+    margin: 1.5rem 0;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .divider-line::before, .divider-line::after {
+    content: ''; flex: 1; height: 1px; background: #e2e8f0;
+  }
+
+  /* Link panduan */
+  .panduan-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    color: #4338ca;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .panduan-link:hover {
+    border-color: #a5b4fc;
+    background: #eef2ff;
+    transform: translateY(-1px);
+  }
+
+  /* Footer form */
+  .form-footer {
+    text-align: center;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 1.5rem;
+    line-height: 1.6;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1023px) {
+    .brand-side { display: none; }
+    .form-side {
+      background:
+        radial-gradient(circle at 0% 0%, rgba(99,102,241,.08) 0%, transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(139,92,246,.08) 0%, transparent 40%),
+        #f8fafc;
+    }
+    .mobile-brand { display: flex; }
+  }
+  @media (max-width: 480px) {
+    .form-side { padding: 1.25rem; }
+    .form-heading { font-size: 1.4rem; }
+  }
+</style>
 </head>
 <body>
 
-<div class="min-h-screen flex">
+<div class="login-wrap">
 
-  <!-- Kiri: Branding -->
-  <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white p-12 flex-col justify-between relative overflow-hidden">
-    <div class="flex items-center gap-3 relative z-10">
-      <div class="w-11 h-11 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center border border-white/20">
-        <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+  <!-- ===== SISI KIRI: Branding ===== -->
+  <aside class="brand-side">
+    <div class="float-shape shape-1"></div>
+    <div class="float-shape shape-2"></div>
+    <div class="float-shape shape-3"></div>
+
+    <div class="brand-inner">
+
+      <!-- Logo + Brand -->
+      <div style="display:flex; align-items:center; gap:0.85rem">
+        <div class="logo-badge">
+          <i data-lucide="graduation-cap" style="width:26px; height:26px"></i>
+        </div>
+        <div>
+          <div style="font-weight:800; font-size:1.15rem; letter-spacing:-0.01em">SISPA</div>
+          <div style="font-size:0.72rem; color:#a5b4fc; letter-spacing:0.02em">Sistem Informasi Supervisi Pendidikan Akademik</div>
+        </div>
       </div>
+
+      <!-- Hero -->
       <div>
-        <div class="font-bold text-lg">SISPA</div>
-        <div class="text-xs text-indigo-200">Sistem Informasi Supervisi Pendidikan Akademik</div>
-      </div>
-    </div>
+        <h1 class="hero-title">
+          Supervisi akademik yang<br>
+          <span class="accent">memuliakan & bermakna.</span>
+        </h1>
+        <p class="hero-sub">
+          Membantu Kepala Sekolah dan Pengawas dalam membina guru melalui
+          <strong style="color:#e0e7ff">observasi pembelajaran mendalam</strong> dan
+          <strong style="color:#e0e7ff">percakapan coaching-mentoring</strong> yang terarah.
+        </p>
 
-    <div class="relative z-10 max-w-md">
-      <h1 class="text-3xl font-bold leading-tight mb-4">
-        Supervisi akademik yang reflektif dan bermakna.
-      </h1>
-      <p class="text-indigo-100 text-sm leading-relaxed">
-        Dukung kepala sekolah dan pengawas dalam membina guru melalui observasi
-        pembelajaran mendalam dan percakapan coaching-mentoring yang terarah.
-      </p>
-    </div>
-
-    <div class="relative z-10 text-xs text-indigo-200">
-      © <span id="year"></span> SISPA · Tahun 2026
-    </div>
-
-    <div class="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-white/5"></div>
-    <div class="absolute -right-10 top-20 w-64 h-64 rounded-full bg-white/5"></div>
-  </div>
-
-  <!-- Kanan: Form -->
-  <div class="flex-1 flex items-center justify-center p-6 lg:p-12">
-    <div class="w-full max-w-md">
-
-      <div class="lg:hidden flex items-center gap-3 mb-8">
-        <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-xl flex items-center justify-center shadow">
-          <i data-lucide="graduation-cap" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <div class="font-bold text-slate-900">SISPA</div>
-          <div class="text-xs text-slate-500">Supervisi Pendidikan Akademik</div>
-        </div>
-      </div>
-
-      <h2 class="text-2xl font-bold text-slate-900 mb-1">Selamat datang</h2>
-      <p class="text-sm text-slate-500 mb-8">Masuk dengan akun Anda.</p>
-
-      <form id="loginForm" class="space-y-5">
-        <div>
-          <label class="label" for="email">Email</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-              <i data-lucide="mail" class="w-4 h-4"></i>
-            </span>
-            <input type="email" id="email" required autocomplete="username"
-                   class="input" style="padding-left: 2.4rem"
-                   placeholder="nama@sekolah.sch.id" />
+        <!-- Fitur -->
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="fi-icon"><i data-lucide="git-branch" style="width:16px; height:16px"></i></div>
+            <div class="fi-text">
+              <strong>Supervisi 3 Tahap</strong>
+              <span>Pra-observasi · Observasi · Pasca-observasi</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon"><i data-lucide="compass" style="width:16px; height:16px"></i></div>
+            <div class="fi-text">
+              <strong>Pendekatan Adaptif</strong>
+              <span>Directive · Collaborative · Non-Directive</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon"><i data-lucide="bar-chart-3" style="width:16px; height:16px"></i></div>
+            <div class="fi-text">
+              <strong>Analitik PM & KKA</strong>
+              <span>Prinsip · Pengalaman belajar · 8 DPL · Koding/AI</span>
+            </div>
           </div>
         </div>
 
+        <!-- Quote -->
+        <div class="quote-card">
+          "Supervisi akademik intinya bukan menilai kinerja guru, akan tetapi membantu guru untuk meningkatkan profesionalismenya."
+          <span class="quote-author">— Modul 5, Supervisi Akademik (2026)</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="brand-footer">
+        <span>© <span id="year"></span> SISPA · Kementerian Pendidikan Dasar dan Menengah</span>
+        <span class="version-pill">v2.0.0 · 2026</span>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ===== SISI KANAN: Form ===== -->
+  <main class="form-side">
+
+    <div class="form-card">
+
+      <!-- Mobile brand -->
+      <div class="mobile-brand">
+        <div class="mb-logo">
+          <i data-lucide="graduation-cap" style="width:22px; height:22px"></i>
+        </div>
         <div>
-          <label class="label" for="password">Password</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-              <i data-lucide="lock" class="w-4 h-4"></i>
+          <div style="font-weight:800; color:#0f172a; font-size:1rem">SISPA</div>
+          <div style="font-size:0.7rem; color:#64748b">Supervisi Pendidikan Akademik</div>
+        </div>
+      </div>
+
+      <!-- Heading -->
+      <h2 class="form-heading">Selamat datang kembali 👋</h2>
+      <p class="form-subheading">Masuk dengan akun Anda untuk melanjutkan.</p>
+
+      <!-- Error -->
+      <div id="errorMsg" class="error-box" role="alert">
+        <i data-lucide="alert-circle" style="width:16px; height:16px; flex-shrink:0; margin-top:2px"></i>
+        <span id="errorText">Terjadi kesalahan</span>
+      </div>
+
+      <!-- Form -->
+      <form id="loginForm" novalidate>
+
+        <div class="input-group">
+          <label class="input-label" for="email">Email</label>
+          <div style="position:relative">
+            <span class="input-icon">
+              <i data-lucide="mail" style="width:18px; height:18px"></i>
             </span>
-            <input type="password" id="password" required autocomplete="current-password"
-                   class="input" style="padding-left: 2.4rem; padding-right: 2.4rem" />
-            <button type="button" id="togglePwd"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
-              <i data-lucide="eye" class="w-4 h-4"></i>
+            <input
+              type="email"
+              id="email"
+              class="input-field"
+              placeholder="nama@sekolah.sch.id"
+              autocomplete="username"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="password">Password</label>
+          <div style="position:relative">
+            <span class="input-icon">
+              <i data-lucide="lock" style="width:18px; height:18px"></i>
+            </span>
+            <input
+              type="password"
+              id="password"
+              class="input-field has-toggle"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" id="togglePwd" class="input-toggle" aria-label="Tampilkan password">
+              <i data-lucide="eye" style="width:18px; height:18px"></i>
             </button>
           </div>
         </div>
 
-        <div id="errorMsg" class="hidden text-sm text-red-700 bg-red-50 border border-red-200 p-3 rounded-lg flex items-start gap-2">
-          <i data-lucide="alert-circle" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
-          <span></span>
-        </div>
-
-        <button type="submit" id="loginBtn" class="btn btn-primary w-full">
-          <i data-lucide="log-in" class="w-4 h-4"></i>
+        <button type="submit" id="loginBtn" class="btn-login" style="margin-top:1.25rem">
           <span>Masuk</span>
+          <i data-lucide="arrow-right" class="btn-arrow" style="width:18px; height:18px"></i>
         </button>
+
       </form>
 
-      <div class="mt-6 text-center text-sm">
-        <a href="./panduan.html" class="text-indigo-600 hover:underline font-medium">
-          📖 Baca Panduan Penggunaan
-        </a>
-      </div>
+      <div class="divider-line">atau</div>
 
-      <p class="text-xs text-slate-400 text-center mt-6">
-        Mengalami kendala login? Hubungi administrator aplikasi.
+      <a href="/sispa-v2/panduan.html" class="panduan-link">
+        <i data-lucide="book-open" style="width:16px; height:16px"></i>
+        <span>Baca Panduan Penggunaan</span>
+      </a>
+
+      <p class="form-footer">
+        Mengalami kendala login? Hubungi administrator sekolah atau<br>
+        pengawas pembina Anda.
       </p>
 
     </div>
-  </div>
+
+  </main>
+
 </div>
 
-<!-- ============ SCRIPTS (URUTAN WAJIB) ============ -->
-
-<!-- 1. Supabase CDN — harus paling awal -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- 2. Config -->
-<script src="./assets/js/config.js"></script>
-
-<!-- 3. Supabase client (butuh CDN + config) -->
-<script src="./assets/js/supabase.js"></script>
-
-<!-- 4. Auth helpers (butuh sb) -->
-<script src="./assets/js/auth.js"></script>
-
-<!-- 5. UI helpers -->
-<script src="./assets/js/ui.js"></script>
-
-<!-- 6. Script inline halaman -->
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
 <script>
+  // Tahun & ikon
   document.getElementById('year').textContent = new Date().getFullYear();
   refreshIcons();
 
-  // Redirect jika sudah login
+  // ===== Redirect jika sudah login =====
   (async function () {
     try {
       const user = await getCurrentUser();
       if (user) {
-        if (user.role === 'admin') window.location.href = '/sispa-v2/admin/dashboard.html';
-        else if (user.role === 'pengawas') window.location.href = '/sispa-v2/pengawas/dashboard.html';
-        else if (user.role === 'guru') window.location.href = '/sispa-v2/guru/dashboard.html';
-        else window.location.href = '/sispa-v2/ks/dashboard.html';
+        const map = {
+          admin: '/sispa-v2/admin/dashboard.html',
+          pengawas: '/sispa-v2/pengawas/dashboard.html',
+          guru: '/sispa-v2/guru/dashboard.html',
+          ks: '/sispa-v2/ks/dashboard.html'
+        };
+        window.location.href = map[user.role] || '/sispa-v2/ks/dashboard.html';
       }
     } catch (e) {
       console.warn('[SISPA] Cek login gagal:', e);
     }
   })();
 
-  // Toggle password
+  // ===== Toggle Password =====
   const pwdInput = document.getElementById('password');
-  document.getElementById('togglePwd').addEventListener('click', function () {
+  const toggleBtn = document.getElementById('togglePwd');
+  toggleBtn.addEventListener('click', () => {
     const isPwd = pwdInput.type === 'password';
     pwdInput.type = isPwd ? 'text' : 'password';
-    this.innerHTML = `<i data-lucide="${isPwd ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
+    toggleBtn.innerHTML = `<i data-lucide="${isPwd ? 'eye-off' : 'eye'}" style="width:18px; height:18px"></i>`;
     refreshIcons();
+    pwdInput.focus();
   });
 
-  // Submit login
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  // ===== Submit Login =====
+  const form = document.getElementById('loginForm');
+  const btn = document.getElementById('loginBtn');
+  const errBox = document.getElementById('errorMsg');
+  const errText = document.getElementById('errorText');
+
+  function showError(msg) {
+    errText.textContent = msg;
+    errBox.classList.remove('show');
+    // Reset animasi
+    void errBox.offsetWidth;
+    errBox.classList.add('show');
+  }
+
+  function hideError() {
+    errBox.classList.remove('show');
+  }
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('loginBtn');
-    const errBox = document.getElementById('errorMsg');
-    errBox.classList.add('hidden');
+    hideError();
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
+    if (!email) return showError('Email wajib diisi');
+    if (!password) return showError('Password wajib diisi');
+
+    // Loading state
     btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Memproses...</span>`;
+    btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin" style="width:18px; height:18px"></i><span>Memverifikasi...</span>`;
     refreshIcons();
 
     try {
       await login(email, password);
 
-      // Ambil profil untuk redirect
+      // Update UI: loading kedua
+      btn.innerHTML = `<i data-lucide="check-circle" style="width:18px; height:18px"></i><span>Berhasil! Mengalihkan...</span>`;
+      btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+      refreshIcons();
+
       const user = await getCurrentUser();
       if (!user) throw new Error('Profil tidak ditemukan setelah login');
 
-      if (user.role === 'admin') window.location.href = '/sispa-v2/admin/dashboard.html';
-      else if (user.role === 'pengawas') window.location.href = '/sispa-v2/pengawas/dashboard.html';
-      else if (user.role === 'guru') window.location.href = '/sispa-v2/guru/dashboard.html';
-      else window.location.href = '/sispa-v2/ks/dashboard.html';
+      const map = {
+        admin: '/sispa-v2/admin/dashboard.html',
+        pengawas: '/sispa-v2/pengawas/dashboard.html',
+        guru: '/sispa-v2/guru/dashboard.html',
+        ks: '/sispa-v2/ks/dashboard.html'
+      };
+      setTimeout(() => {
+        window.location.href = map[user.role] || '/sispa-v2/ks/dashboard.html';
+      }, 600);
 
     } catch (err) {
-      errBox.querySelector('span').textContent = err.message || 'Login gagal';
-      errBox.classList.remove('hidden');
+      showError(err.message || 'Login gagal. Periksa email & password Anda.');
       btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>Masuk</span>`;
+      btn.innerHTML = `<span>Masuk</span><i data-lucide="arrow-right" class="btn-arrow" style="width:18px; height:18px"></i>`;
+      btn.style.background = '';
       refreshIcons();
+    }
+  });
+
+  // Enter di input email → pindah ke password
+  document.getElementById('email').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('password').focus();
     }
   });
 </script>
