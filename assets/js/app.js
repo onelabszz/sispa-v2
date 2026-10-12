@@ -41,11 +41,13 @@ const SISPA_NAV = {
     { key: 'program', href: '/sispa-v2/ks/program.html', label: 'Program Supervisi', icon: 'clipboard-list' },
     { key: 'pelaksanaan', href: '/sispa-v2/ks/pelaksanaan.html', label: 'Pelaksanaan', icon: 'play-circle' },
     { key: 'riwayat', href: '/sispa-v2/ks/riwayat.html', label: 'Riwayat', icon: 'history' },
-{ section: 'Analitik' },
-{ key: 'analisis', href: '/sispa-v2/ks/analisis.html', label: 'Analisis PM & KKA', icon: 'bar-chart-3' },
-{ section: 'Bantuan' },
-    { key: 'panduan', href: '/sispa-v2/panduan.html', label: 'Panduan', icon: 'book-open' }
-  ],
+  { section: 'Analitik' },
+  { key: 'analisis', href: '/sispa-v2/ks/analisis.html', label: 'Analisis PM & KKA', icon: 'bar-chart-3' },
+  { section: 'Akun' },
+  { key: 'profil', href: '/sispa-v2/ks/profil.html', label: 'Profil Saya', icon: 'user-circle' },
+  { section: 'Bantuan' },
+  { key: 'panduan', href: '/sispa-v2/panduan.html', label: 'Panduan', icon: 'book-open' }
+],
   guru: [
     { section: 'Utama' },
     { key: 'dashboard', href: '/sispa-v2/guru/dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
