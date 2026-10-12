@@ -9,171 +9,60 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
 <style>
-  .stepper {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0;
-    margin-bottom: 2rem;
-  }
-  .step {
-    flex: 1;
-    position: relative;
-    text-align: center;
-  }
+  .stepper { display: flex; align-items: flex-start; justify-content: space-between; gap: 0; margin-bottom: 2rem; }
+  .step { flex: 1; position: relative; text-align: center; }
   .step-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.875rem;
-    background: var(--slate-200);
-    color: var(--slate-500);
-    transition: all .2s;
-    position: relative;
-    z-index: 2;
+    width: 40px; height: 40px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.875rem;
+    background: var(--slate-200); color: var(--slate-500);
+    transition: all .2s; position: relative; z-index: 2;
   }
-  .step.active .step-circle {
-    background: var(--brand-600);
-    color: white;
-    box-shadow: 0 0 0 4px var(--brand-100);
-  }
-  .step.done .step-circle {
-    background: var(--success);
-    color: white;
-  }
-  .step-label {
-    font-size: 0.75rem;
-    color: var(--slate-500);
-    margin-top: 0.5rem;
-    font-weight: 500;
-  }
-  .step.active .step-label {
-    color: var(--brand-700);
-    font-weight: 600;
-  }
-  .step-line {
-    position: absolute;
-    top: 20px;
-    height: 2px;
-    background: var(--slate-200);
-    left: 50%;
-    right: -50%;
-    z-index: 1;
-  }
-  .step.done .step-line,
-  .step.active .step-line {
-    background: var(--brand-500);
-  }
+  .step.active .step-circle { background: var(--brand-600); color: white; box-shadow: 0 0 0 4px var(--brand-100); }
+  .step.done .step-circle { background: var(--success); color: white; }
+  .step-label { font-size: 0.75rem; color: var(--slate-500); margin-top: 0.5rem; font-weight: 500; }
+  .step.active .step-label { color: var(--brand-700); font-weight: 600; }
+  .step-line { position: absolute; top: 20px; height: 2px; background: var(--slate-200); left: 50%; right: -50%; z-index: 1; }
+  .step.done .step-line, .step.active .step-line { background: var(--brand-500); }
   .step:last-child .step-line { display: none; }
 
-  .form-section {
-    margin-bottom: 1.25rem;
-    padding-bottom: 1.25rem;
-    border-bottom: 1px solid var(--slate-100);
-  }
-  .form-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-  }
-  .form-section-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--slate-900);
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .form-hint {
-    font-size: 0.75rem;
-    color: var(--slate-500);
-    margin-bottom: 0.75rem;
-    line-height: 1.5;
-  }
-  .checkbox-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.6rem 0.75rem;
-    border: 1px solid var(--slate-200);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all .15s;
-  }
+  .form-section { margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--slate-100); }
+  .form-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .form-section-title { font-size: 0.95rem; font-weight: 600; color: var(--slate-900); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+  .form-hint { font-size: 0.75rem; color: var(--slate-500); margin-bottom: 0.75rem; line-height: 1.5; }
+  .checkbox-card { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.6rem 0.75rem; border: 1px solid var(--slate-200); border-radius: 8px; cursor: pointer; transition: all .15s; }
   .checkbox-card:hover { border-color: var(--brand-500); }
   .checkbox-card input:checked + div { color: var(--brand-700); font-weight: 600; }
   .checkbox-card.selected { border-color: var(--brand-500); background: var(--brand-50); }
 
-  .refleksi-box {
-    border: 1px solid var(--slate-200);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background: white;
-  }
-  .refleksi-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--slate-900);
-    margin-bottom: 0.25rem;
-  }
-  .refleksi-help {
-    font-size: 0.7rem;
-    color: var(--slate-500);
-    font-style: italic;
-    margin-bottom: 0.5rem;
-  }
-  .respon-btn {
-    flex: 1;
-    padding: 0.5rem;
-    border-radius: 6px;
-    border: 2px solid var(--slate-200);
-    background: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .respon-btn.active[data-value="menanyakan"] {
-    background: var(--brand-50);
-    border-color: var(--brand-600);
-    color: var(--brand-700);
-  }
-  .respon-btn.active[data-value="memberitahu"] {
-    background: #fef3c7;
-    border-color: #d97706;
-    color: #92400e;
-  }
+  .refleksi-box { border: 1px solid var(--slate-200); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; background: white; }
+  .refleksi-box.modul5 { border-left: 3px solid var(--brand-500); }
+  .refleksi-label { font-size: 0.85rem; font-weight: 600; color: var(--slate-900); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+  .refleksi-help { font-size: 0.7rem; color: var(--slate-500); font-style: italic; margin-bottom: 0.5rem; }
+  .refleksi-badge { font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 4px; background: var(--brand-100); color: var(--brand-700); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .respon-btn { flex: 1; padding: 0.5rem; border-radius: 6px; border: 2px solid var(--slate-200); background: white; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .respon-btn.active[data-value="menanyakan"] { background: var(--brand-50); border-color: var(--brand-600); color: var(--brand-700); }
+  .respon-btn.active[data-value="memberitahu"] { background: #fef3c7; border-color: #d97706; color: #92400e; }
 </style>
 </head>
 <body>
 
-<!-- Banner read-only (untuk status selesai) -->
 <div id="readonlyBanner" class="hidden" style="margin-bottom:1rem; padding:0.75rem; border-radius:8px; background:#dcfce7; border:1px solid #86efac; font-size:0.875rem; color:#166534; display:flex; gap:0.5rem; align-items:flex-start">
   <i data-lucide="check-circle" class="w-4 h-4" style="margin-top:0.15rem; flex-shrink:0"></i>
-  <div>
-    <strong>Supervisi sudah selesai.</strong> Data tidak dapat diubah lagi. Hubungi pengawas jika perlu revisi.
-  </div>
+  <div><strong>Supervisi sudah selesai.</strong> Data tidak dapat diubah lagi. Hubungi pengawas jika perlu revisi.</div>
 </div>
 
-<!-- Header -->
 <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
   <div>
     <h1 id="pageTitle" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Pelaksanaan Supervisi</h1>
     <p id="pageSubtitle" style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Memuat data...</p>
   </div>
-  <a href="/sispa-v2/ks/pelaksanaan.html" class="btn btn-ghost">
+  <a href="/sispa-v2/ks/program.html" class="btn btn-ghost">
     <i data-lucide="arrow-left" class="w-4 h-4"></i>
-    <span>Kembali</span>
+    <span>Kembali ke Program</span>
   </a>
 </div>
 
-<!-- Info Guru -->
 <div id="guruInfo" class="card" style="margin-bottom:1.5rem; display:none">
   <div class="card-body" style="display:flex; align-items:center; gap:1rem">
     <div id="guruInitial" style="width:48px; height:48px; border-radius:50%; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:1.125rem; flex-shrink:0">—</div>
@@ -185,30 +74,16 @@
   </div>
 </div>
 
-<!-- Stepper -->
 <div class="card" style="margin-bottom:1.5rem">
   <div class="card-body" style="padding-top:1.5rem">
     <div class="stepper" id="stepper">
-      <div class="step" data-step="1">
-        <div class="step-line"></div>
-        <div class="step-circle">1</div>
-        <div class="step-label">Pra-Observasi</div>
-      </div>
-      <div class="step" data-step="2">
-        <div class="step-line"></div>
-        <div class="step-circle">2</div>
-        <div class="step-label">Observasi</div>
-      </div>
-      <div class="step" data-step="3">
-        <div class="step-line"></div>
-        <div class="step-circle">3</div>
-        <div class="step-label">Pasca-Observasi</div>
-      </div>
+      <div class="step" data-step="1"><div class="step-line"></div><div class="step-circle">1</div><div class="step-label">Pra-Observasi</div></div>
+      <div class="step" data-step="2"><div class="step-line"></div><div class="step-circle">2</div><div class="step-label">Observasi</div></div>
+      <div class="step" data-step="3"><div class="step-line"></div><div class="step-circle">3</div><div class="step-label">Pasca-Observasi</div></div>
     </div>
   </div>
 </div>
 
-<!-- Container konten tahap -->
 <div id="stepContainer"></div>
 
 <script src="/sispa-v2/assets/js/config.js"></script>
@@ -222,23 +97,21 @@
 <script>
   // ===== STATE =====
   let user = null;
-  let supervisiData = null;      // header supervisi
-  let currentTahap = 1;          // 1 | 2 | 3
-  let guruInfo = null;           // data guru
-  let tipeInfo = null;           // profil tipe guru terbaru
+  let supervisiData = null;
+  let currentTahap = 1;
+  let guruInfo = null;
+  let tipeInfo = null;
   let isReadonly = false;
 
-  // Data form per tahap
   let praData = null;
   let obsData = null;
   let pascaData = null;
 
-  // ===== INIT =====
   const params = new URLSearchParams(window.location.search);
   const supervisiId = params.get('id');
   const guruIdParam = params.get('guru');
 
-  initPage('ks', 'pelaksanaan', async (u) => {
+  initPage('ks', 'program', async (u) => {
     user = u;
     try {
       if (supervisiId) {
@@ -247,7 +120,7 @@
         await prepareNew(guruIdParam);
       } else {
         showToast('Parameter tidak lengkap', 'error');
-        setTimeout(() => window.location.href = '/sispa-v2/ks/pelaksanaan.html', 1500);
+        setTimeout(() => window.location.href = '/sispa-v2/ks/program.html', 1500);
       }
     } catch (err) {
       console.error(err);
@@ -255,22 +128,21 @@
     }
   });
 
-  // ===== LOAD EXISTING =====
   async function loadExisting(id) {
     await withLoading('Memuat supervisi...', async () => {
       supervisiData = await SupervisiAPI.get(id);
       guruInfo = supervisiData.guru;
-      tipeInfo = supervisiData.profil_tipe;
+      tipeInfo = supervisiData.profil_tipe; // sudah single object
 
       isReadonly = supervisiData.status === 'selesai';
       if (isReadonly) el('readonlyBanner').classList.remove('hidden');
 
-      // Tentukan tahap aktif
       if (supervisiData.status === 'draft' || supervisiData.status === 'pra_observasi') currentTahap = 1;
       else if (supervisiData.status === 'observasi') currentTahap = 2;
       else if (supervisiData.status === 'pasca_observasi' || supervisiData.status === 'selesai') currentTahap = 3;
       else currentTahap = 1;
 
+      // Sudah di-unwrap oleh API
       praData = supervisiData.pra_observasi;
       obsData = supervisiData.observasi;
       pascaData = supervisiData.pasca_observasi;
@@ -282,19 +154,14 @@
     });
   }
 
-  // ===== PREPARE NEW =====
   async function prepareNew(guruId) {
     await withLoading('Menyiapkan supervisi...', async () => {
       guruInfo = await GuruAPI.get(guruId);
-      if (!guruInfo || !guruInfo.id) {
-        throw new Error('Guru tidak ditemukan');
-      }
+      if (!guruInfo || !guruInfo.id) throw new Error('Guru tidak ditemukan');
 
-      // Ambil profil tipe terbaru
       const tipeList = await ProfilTipeAPI.listByGuruIds([guruId]);
       tipeInfo = tipeList.length > 0 ? tipeList[0] : null;
 
-      // Buat sesi supervisi baru (draft)
       const pendekatanDefault = tipeInfo ? tipeInfo.pendekatan_rekomendasi : 'collaborative';
       const teknikDefault = tipeInfo && tipeInfo.pendekatan_rekomendasi === 'non_directive'
         ? 'coaching'
@@ -320,7 +187,6 @@
     });
   }
 
-  // ===== HEADER INFO =====
   function renderHeader() {
     const g = guruInfo;
     el('guruInfo').style.display = 'block';
@@ -335,11 +201,9 @@
 
     const tipeLabel = tipeInfo ? tipeInfo.tipe.replace(/_/g,' ') : 'Belum dinilai';
     el('pageSubtitle').textContent = `Pendekatan: ${pendekatanLabel} · Tipe: ${tipeLabel}`;
-
     el('pageTitle').textContent = isReadonly ? 'Detail Supervisi' : 'Pelaksanaan Supervisi';
   }
 
-  // ===== STEPPER =====
   function renderStepper() {
     document.querySelectorAll('#stepper .step').forEach(s => {
       const step = parseInt(s.dataset.step);
@@ -351,10 +215,6 @@
 
   function goToTahap(n) {
     if (n < 1 || n > 3) return;
-    if (isReadonly && n !== currentTahap) {
-      // Kalau readonly, hanya bisa lihat tahap saat ini atau sebelumnya
-      // Tapi kita izinkan navigasi antar tahap untuk read-only
-    }
     currentTahap = n;
     renderStepper();
     renderCurrentTahap();
@@ -362,14 +222,12 @@
     refreshIcons();
   }
 
-  // ===== RENDER CURRENT TAHAP =====
   function renderCurrentTahap() {
     const c = el('stepContainer');
     if (currentTahap === 1) c.innerHTML = renderTahap1();
     else if (currentTahap === 2) c.innerHTML = renderTahap2();
     else if (currentTahap === 3) c.innerHTML = renderTahap3();
 
-    // Bind event listener per tahap
     if (currentTahap === 1) bindTahap1();
     else if (currentTahap === 2) bindTahap2();
     else if (currentTahap === 3) bindTahap3();
@@ -384,7 +242,6 @@
     const p = praData || {};
     const disabled = isReadonly ? 'disabled' : '';
 
-    // Preset aspek fokus
     const aspekFokusOptions = [
       { v: 'teknik_bertanya', l: 'Teknik Bertanya (mendorong murid berpikir)' },
       { v: 'memuliakan', l: 'Memuliakan Murid (mendengar aktif, apresiasi)' },
@@ -394,15 +251,12 @@
       { v: 'lainnya', l: 'Lainnya (isi manual di catatan)' }
     ];
 
-    // Prinsip PM (3 pilihan)
     const prinsipPM = ['berkesadaran', 'bermakna', 'menggembirakan'];
     const aspekPM = supervisiData.aspek_pm || {};
 
-    // Pengalaman belajar
     const pengalaman = ['memahami', 'mengaplikasi', 'merefleksi'];
     const pengalamanData = supervisiData.pengalaman_belajar || {};
 
-    // DPL (8 dimensi)
     const dplList = [
       { n: 1, l: 'Keimanan & Ketakwaan' },
       { n: 2, l: 'Kewargaan' },
@@ -427,113 +281,61 @@
         <div class="card-body">
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="target" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Tujuan Pembelajaran
-            </div>
-            <div class="form-hint">
-              Tanyakan: "Apa tujuan pembelajaran yang ingin dicapai hari ini? Bagaimana kesesuaiannya dengan capaian pembelajaran?"
-            </div>
-            <textarea id="fTujuan" class="textarea" rows="3" ${disabled}
-                      placeholder="Contoh: Murid dapat menganalisis pengaruh gaya terhadap gerak benda melalui percobaan sederhana.">${escapeHtml(p.tujuan_pembelajaran || '')}</textarea>
+            <div class="form-section-title"><i data-lucide="target" class="w-4 h-4" style="color:var(--brand-500)"></i>Tujuan Pembelajaran</div>
+            <div class="form-hint">Tanyakan: "Apa tujuan pembelajaran yang ingin dicapai hari ini? Bagaimana kesesuaiannya dengan capaian pembelajaran?"</div>
+            <textarea id="fTujuan" class="textarea" rows="3" ${disabled} placeholder="Contoh: Murid dapat menganalisis pengaruh gaya terhadap gerak benda...">${escapeHtml(p.tujuan_pembelajaran || '')}</textarea>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="route" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Strategi Pembelajaran (PM)
-            </div>
-            <div class="form-hint">
-              Tanyakan: "Apa strategi/model/metode yang akan digunakan? Bagaimana Anda menerapkan Pembelajaran Mendalam?"
-            </div>
-            <textarea id="fStrategi" class="textarea" rows="3" ${disabled}
-                      placeholder="Contoh: Problem Based Learning dengan fenomena gaya gesek di sekitar sekolah...">${escapeHtml(p.strategi_pm || '')}</textarea>
+            <div class="form-section-title"><i data-lucide="route" class="w-4 h-4" style="color:var(--brand-500)"></i>Strategi Pembelajaran (PM)</div>
+            <div class="form-hint">Tanyakan: "Apa strategi/model/metode yang akan digunakan? Bagaimana Anda menerapkan Pembelajaran Mendalam?"</div>
+            <textarea id="fStrategi" class="textarea" rows="3" ${disabled} placeholder="Contoh: Problem Based Learning...">${escapeHtml(p.strategi_pm || '')}</textarea>
 
             <div style="margin-top:1rem">
-              <label class="label">Prinsip Pembelajaran Mendalam yang Diterapkan</label>
+              <label class="label">Prinsip Pembelajaran Mendalam</label>
               <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.5rem" id="prinsipPMGrid">
-                ${prinsipPM.map(pr => `
-                  <label class="checkbox-card ${aspekPM[pr] ? 'selected' : ''}">
-                    <input type="checkbox" data-prinsip="${pr}" ${aspekPM[pr] ? 'checked' : ''} ${disabled} />
-                    <div style="font-size:0.8rem; text-transform:capitalize">${pr}</div>
-                  </label>
-                `).join('')}
+                ${prinsipPM.map(pr => `<label class="checkbox-card ${aspekPM[pr] ? 'selected' : ''}"><input type="checkbox" data-prinsip="${pr}" ${aspekPM[pr] ? 'checked' : ''} ${disabled} /><div style="font-size:0.8rem; text-transform:capitalize">${pr}</div></label>`).join('')}
               </div>
             </div>
 
             <div style="margin-top:1rem">
-              <label class="label">Pengalaman Belajar yang Akan Difasilitasi</label>
+              <label class="label">Pengalaman Belajar</label>
               <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.5rem" id="pengalamanGrid">
-                ${pengalaman.map(pl => `
-                  <label class="checkbox-card ${pengalamanData[pl] ? 'selected' : ''}">
-                    <input type="checkbox" data-pengalaman="${pl}" ${pengalamanData[pl] ? 'checked' : ''} ${disabled} />
-                    <div style="font-size:0.8rem; text-transform:capitalize">${pl}</div>
-                  </label>
-                `).join('')}
+                ${pengalaman.map(pl => `<label class="checkbox-card ${pengalamanData[pl] ? 'selected' : ''}"><input type="checkbox" data-pengalaman="${pl}" ${pengalamanData[pl] ? 'checked' : ''} ${disabled} /><div style="font-size:0.8rem; text-transform:capitalize">${pl}</div></label>`).join('')}
               </div>
             </div>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="clipboard-check" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Asesmen
-            </div>
-            <div class="form-hint">
-              Tanyakan: "Bagaimana Anda merencanakan asesmen? Apakah sudah sesuai dengan tujuan pembelajaran?"
-            </div>
-            <textarea id="fAsesmen" class="textarea" rows="2" ${disabled}
-                      placeholder="Contoh: Asesmen formatif via observasi kinerja dan LKPD...">${escapeHtml(p.asesmen_rencana || '')}</textarea>
+            <div class="form-section-title"><i data-lucide="clipboard-check" class="w-4 h-4" style="color:var(--brand-500)"></i>Asesmen</div>
+            <div class="form-hint">Tanyakan: "Bagaimana Anda merencanakan asesmen? Apakah sudah sesuai dengan tujuan?"</div>
+            <textarea id="fAsesmen" class="textarea" rows="2" ${disabled} placeholder="Contoh: Asesmen formatif via observasi kinerja...">${escapeHtml(p.asesmen_rencana || '')}</textarea>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="layers" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Dimensi Profil Lulusan (Target)
-            </div>
-            <div class="form-hint">
-              Pilih dimensi profil lulusan yang akan dikembangkan dalam pembelajaran ini.
-            </div>
+            <div class="form-section-title"><i data-lucide="layers" class="w-4 h-4" style="color:var(--brand-500)"></i>Dimensi Profil Lulusan (Target)</div>
+            <div class="form-hint">Pilih dimensi profil lulusan yang akan dikembangkan.</div>
             <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.4rem" id="dplGrid">
-              ${dplList.map(d => `
-                <label class="checkbox-card ${dplTarget.includes(d.n) ? 'selected' : ''}" style="padding:0.5rem">
-                  <input type="checkbox" data-dpl="${d.n}" ${dplTarget.includes(d.n) ? 'checked' : ''} ${disabled} />
-                  <div style="font-size:0.7rem; line-height:1.2">
-                    <strong>DPL ${d.n}</strong><br>
-                    ${d.l}
-                  </div>
-                </label>
-              `).join('')}
+              ${dplList.map(d => `<label class="checkbox-card ${dplTarget.includes(d.n) ? 'selected' : ''}" style="padding:0.5rem"><input type="checkbox" data-dpl="${d.n}" ${dplTarget.includes(d.n) ? 'checked' : ''} ${disabled} /><div style="font-size:0.7rem; line-height:1.2"><strong>DPL ${d.n}</strong><br>${d.l}</div></label>`).join('')}
             </div>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="focus" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Kesepakatan Fokus Observasi
-            </div>
-            <div class="form-hint">
-              Tentukan satu aspek utama yang akan diamati. Sesuai Modul 5: fokus pada sebagian indikator, bukan seluruhnya.
-            </div>
+            <div class="form-section-title"><i data-lucide="focus" class="w-4 h-4" style="color:var(--brand-500)"></i>Kesepakatan Fokus Observasi</div>
+            <div class="form-hint">Tentukan satu aspek utama yang akan diamati (Modul 5: fokus pada sebagian indikator).</div>
             <select id="fAspekFokus" class="select" ${disabled}>
               <option value="">— Pilih Aspek —</option>
               ${aspekFokusOptions.map(o => `<option value="${o.v}" ${p.aspek_fokus === o.v ? 'selected' : ''}>${o.l}</option>`).join('')}
             </select>
-            <textarea id="fFokusCatatan" class="textarea" rows="2" style="margin-top:0.75rem" ${disabled}
-                      placeholder="Catatan tambahan tentang fokus observasi...">${escapeHtml(p.fokus_observasi || '')}</textarea>
+            <textarea id="fFokusCatatan" class="textarea" rows="2" style="margin-top:0.75rem" ${disabled} placeholder="Catatan tambahan tentang fokus observasi...">${escapeHtml(p.fokus_observasi || '')}</textarea>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="link" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Dokumen & Kesiapan Guru
-            </div>
+            <div class="form-section-title"><i data-lucide="link" class="w-4 h-4" style="color:var(--brand-500)"></i>Dokumen & Kesiapan Guru</div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
               <div>
                 <label class="label">Link Dokumen (RPP/Modul Ajar)</label>
-                <input type="url" id="fDokumen" class="input" ${disabled}
-                       value="${escapeHtml(p.dokumen_url || '')}"
-                       placeholder="https://drive.google.com/..." />
+                <input type="url" id="fDokumen" class="input" ${disabled} value="${escapeHtml(p.dokumen_url || '')}" placeholder="https://drive.google.com/..." />
               </div>
               <div>
                 <label class="label">Kesiapan Guru</label>
@@ -546,69 +348,38 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       <div style="display:flex; justify-content:space-between; gap:0.5rem; margin-bottom:3rem">
-        ${isReadonly ? `
-          <button class="btn btn-secondary" onclick="goToTahap(3)">
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-            <span>Ke Pasca-Observasi</span>
-          </button>
-        ` : `
-          <div></div>
-          <button id="btnNext1" class="btn btn-primary">
-            <span>Lanjut ke Observasi</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </button>
-        `}
-      </div>
-    `;
+        ${isReadonly
+          ? `<div></div><button class="btn btn-primary" onclick="goToTahap(2)"><span>Ke Observasi</span>${icon('arrow-right','w-4 h-4')}</button>`
+          : `<div></div><button id="btnNext1" class="btn btn-primary"><span>Lanjut ke Observasi</span>${icon('arrow-right','w-4 h-4')}</button>`}
+      </div>`;
   }
 
   function bindTahap1() {
     if (isReadonly) return;
-
-    // Checkbox handling
-    document.querySelectorAll('#prinsipPMGrid input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        e.target.closest('label').classList.toggle('selected', e.target.checked);
-      });
-    });
-    document.querySelectorAll('#pengalamanGrid input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        e.target.closest('label').classList.toggle('selected', e.target.checked);
-      });
-    });
-    document.querySelectorAll('#dplGrid input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        e.target.closest('label').classList.toggle('selected', e.target.checked);
+    ['#prinsipPMGrid','#pengalamanGrid','#dplGrid'].forEach(sel => {
+      document.querySelectorAll(sel + ' input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', e => e.target.closest('label').classList.toggle('selected', e.target.checked));
       });
     });
 
     el('btnNext1').addEventListener('click', async () => {
       const btn = el('btnNext1');
       btn.disabled = true;
-      btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+      btn.innerHTML = `${icon('loader-2','w-4 h-4')}<span>Menyimpan...</span>`;
       refreshIcons();
 
       try {
-        // Kumpulkan data
         const aspekPM = {};
-        document.querySelectorAll('#prinsipPMGrid input[type="checkbox"]').forEach(cb => {
-          aspekPM[cb.dataset.prinsip] = cb.checked;
-        });
+        document.querySelectorAll('#prinsipPMGrid input[type="checkbox"]').forEach(cb => aspekPM[cb.dataset.prinsip] = cb.checked);
         const pengalamanBelajar = {};
-        document.querySelectorAll('#pengalamanGrid input[type="checkbox"]').forEach(cb => {
-          pengalamanBelajar[cb.dataset.pengalaman] = cb.checked;
-        });
+        document.querySelectorAll('#pengalamanGrid input[type="checkbox"]').forEach(cb => pengalamanBelajar[cb.dataset.pengalaman] = cb.checked);
         const dplTarget = [];
-        document.querySelectorAll('#dplGrid input[type="checkbox"]').forEach(cb => {
-          if (cb.checked) dplTarget.push(parseInt(cb.dataset.dpl));
-        });
+        document.querySelectorAll('#dplGrid input[type="checkbox"]').forEach(cb => { if (cb.checked) dplTarget.push(parseInt(cb.dataset.dpl)); });
 
-        // Update supervisi header
         await SupervisiAPI.update(supervisiData.id, {
           aspek_pm: aspekPM,
           pengalaman_belajar: pengalamanBelajar,
@@ -616,9 +387,7 @@
           status: 'observasi'
         });
 
-        // Upsert pra_observasi
         const praPayload = {
-          supervisi_id: supervisiData.id,
           tujuan_pembelajaran: el('fTujuan').value.trim(),
           strategi_pm: el('fStrategi').value.trim(),
           asesmen_rencana: el('fAsesmen').value.trim(),
@@ -628,20 +397,14 @@
           kesiapan_guru: el('fKesiapan').value || null
         };
 
-        if (praData && praData.id) {
-          await sb.from('pra_observasi').update(praPayload).eq('id', praData.id);
-        } else {
-          const { error } = await sb.from('pra_observasi').insert([praPayload]);
-          if (error) throw new Error(error.message);
-        }
-
+        const savedPra = await SupervisiAPI.savePra(supervisiData.id, praPayload);
         showToast('Pra-observasi tersimpan', 'success');
         supervisiData.status = 'observasi';
-        praData = { ...praPayload, id: praData ? praData.id : null };
+        praData = savedPra;
         goToTahap(2);
       } catch (err) {
         btn.disabled = false;
-        btn.innerHTML = `<span>Lanjut ke Observasi</span>${icon('arrow-right', 'w-4 h-4')}`;
+        btn.innerHTML = `<span>Lanjut ke Observasi</span>${icon('arrow-right','w-4 h-4')}`;
         refreshIcons();
         showToast('Gagal: ' + err.message, 'error');
       }
@@ -654,10 +417,7 @@
   function renderTahap2() {
     const o = obsData || {};
     const disabled = isReadonly ? 'disabled' : '';
-
-    const momenPM = ['murid_aktif_konstruksi', 'murid_berkolaborasi', 'murid_refleksi',
-                     'guru_memuliakan', 'guru_beri_tantangan', 'guru_fasilitasi'];
-
+    const momenPM = ['murid_aktif_konstruksi','murid_berkolaborasi','murid_refleksi','guru_memuliakan','guru_beri_tantangan','guru_fasilitasi'];
     const momen = o.catatan_momen_pm || [];
 
     return `
@@ -672,144 +432,87 @@
         <div class="card-body">
 
           <div style="padding:0.875rem; border-radius:8px; background:var(--brand-50); border:1px solid var(--brand-100); font-size:0.8rem; color:var(--brand-900); margin-bottom:1.25rem; line-height:1.5">
-            <strong>Catatan:</strong> Sesuai Modul 5, catat <em>aktivitas faktual</em> murid dan guru — bukan opini, bukan skor.
-            Hindari penilaian. Fokus pada <strong>apa yang dilihat & didengar</strong>.
+            <strong>Catatan:</strong> Catat <em>aktivitas faktual</em> murid dan guru — bukan opini, bukan skor.
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="user-check" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Aktivitas Guru
-            </div>
-            <div class="form-hint">
-              Catat: apa yang guru lakukan, bagaimana cara bertanya, bagaimana memuliakan murid, respon terhadap situasi.
-            </div>
-            <textarea id="fAktivitasGuru" class="textarea" rows="5" ${disabled}
-                      placeholder="Contoh:&#10;- Guru membuka dengan pertanyaan pemantik tentang gaya gesek&#10;- Memberi waktu tunggu 5 detik sebelum meminta jawaban&#10;- Mengapresiasi jawaban murid dengan spesifik: 'Bagus, kamu memperhatikan detail'">${escapeHtml(o.catatan_aktivitas_guru || '')}</textarea>
+            <div class="form-section-title"><i data-lucide="user-check" class="w-4 h-4" style="color:var(--brand-500)"></i>Aktivitas Guru</div>
+            <div class="form-hint">Catat: apa yang guru lakukan, bagaimana bertanya, bagaimana memuliakan murid.</div>
+            <textarea id="fAktivitasGuru" class="textarea" rows="5" ${disabled} placeholder="Contoh:&#10;- Guru membuka dengan pertanyaan pemantik tentang gaya gesek&#10;- Memberi waktu tunggu 5 detik...">${escapeHtml(o.catatan_aktivitas_guru || '')}</textarea>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="users" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Aktivitas Murid
-            </div>
-            <div class="form-hint">
-              Catat: apa yang murid lakukan, bagaimana mereka berinteraksi, momen berpikir kritis, kolaborasi, refleksi.
-            </div>
-            <textarea id="fAktivitasMurid" class="textarea" rows="5" ${disabled}
-                      placeholder="Contoh:&#10;- 8 dari 10 murid mengangkat tangan saat pertanyaan pemantik&#10;- Diskusi kelompok aktif, 2 kelompok terlihat mendominasi&#10;- 1 murid mengajukan pertanyaan kritis: 'Kenapa benda berat tidak selalu jatuh lebih cepat?'">${escapeHtml(o.catatan_aktivitas_murid || '')}</textarea>
+            <div class="form-section-title"><i data-lucide="users" class="w-4 h-4" style="color:var(--brand-500)"></i>Aktivitas Murid</div>
+            <div class="form-hint">Catat: apa yang murid lakukan, interaksi, momen berpikir kritis, kolaborasi.</div>
+            <textarea id="fAktivitasMurid" class="textarea" rows="5" ${disabled} placeholder="Contoh:&#10;- 8 dari 10 murid mengangkat tangan...">${escapeHtml(o.catatan_aktivitas_murid || '')}</textarea>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="sparkles" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Momen Pembelajaran Mendalam yang Teramati
-            </div>
-            <div class="form-hint">
-              Centang momen-momen PM yang terlihat selama observasi.
-            </div>
+            <div class="form-section-title"><i data-lucide="sparkles" class="w-4 h-4" style="color:var(--brand-500)"></i>Momen Pembelajaran Mendalam</div>
             <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.5rem" id="momenGrid">
-              ${momenPM.map(m => `
-                <label class="checkbox-card ${momen.includes(m) ? 'selected' : ''}">
-                  <input type="checkbox" data-momen="${m}" ${momen.includes(m) ? 'checked' : ''} ${disabled} />
-                  <div style="font-size:0.75rem; line-height:1.3">
-                    ${momenLabel(m)}
-                  </div>
-                </label>
-              `).join('')}
+              ${momenPM.map(m => `<label class="checkbox-card ${momen.includes(m) ? 'selected' : ''}"><input type="checkbox" data-momen="${m}" ${momen.includes(m) ? 'checked' : ''} ${disabled} /><div style="font-size:0.75rem; line-height:1.3">${momenLabel(m)}</div></label>`).join('')}
             </div>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="code" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Integrasi Koding / Kecerdasan Artifisial
-            </div>
-            <div class="form-hint">
-              Catat jika ada integrasi Koding atau AI dalam pembelajaran. Kosongkan jika tidak ada.
-            </div>
-            <textarea id="fCatatanKKA" class="textarea" rows="3" ${disabled}
-                      placeholder="Contoh: Murid menggunakan simulasi PhET untuk eksperimen gaya...">${escapeHtml(o.catatan_kka || '')}</textarea>
+            <div class="form-section-title"><i data-lucide="code" class="w-4 h-4" style="color:var(--brand-500)"></i>Integrasi Koding / AI</div>
+            <div class="form-hint">Kosongkan jika tidak ada.</div>
+            <textarea id="fCatatanKKA" class="textarea" rows="3" ${disabled} placeholder="Contoh: Murid menggunakan simulasi PhET...">${escapeHtml(o.catatan_kka || '')}</textarea>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="link" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Bukti & Durasi
-            </div>
+            <div class="form-section-title"><i data-lucide="link" class="w-4 h-4" style="color:var(--brand-500)"></i>Bukti & Durasi</div>
             <div style="display:grid; grid-template-columns:2fr 1fr; gap:0.75rem">
               <div>
-                <label class="label">Link Video/Foto Dokumentasi</label>
-                <input type="url" id="fVideo" class="input" ${disabled}
-                       value="${escapeHtml(o.video_url || '')}"
-                       placeholder="https://drive.google.com/..." />
+                <label class="label">Link Video/Foto</label>
+                <input type="url" id="fVideo" class="input" ${disabled} value="${escapeHtml(o.video_url || '')}" />
               </div>
               <div>
-                <label class="label">Durasi Observasi (menit)</label>
-                <input type="number" id="fDurasiObs" class="input" ${disabled}
-                       value="${o.durasi_menit || ''}" min="1" max="180" />
+                <label class="label">Durasi (menit)</label>
+                <input type="number" id="fDurasiObs" class="input" ${disabled} value="${o.durasi_menit || ''}" min="1" max="180" />
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       <div style="display:flex; justify-content:space-between; gap:0.5rem; margin-bottom:3rem">
-        <button class="btn btn-ghost" onclick="goToTahap(1)">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i>
-          <span>Kembali</span>
-        </button>
-        ${!isReadonly ? `
-          <button id="btnNext2" class="btn btn-primary">
-            <span>Lanjut ke Pasca-Observasi</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </button>
-        ` : `
-          <button class="btn btn-primary" onclick="goToTahap(3)">
-            <span>Ke Pasca-Observasi</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </button>
-        `}
-      </div>
-    `;
+        <button class="btn btn-ghost" onclick="goToTahap(1)">${icon('arrow-left','w-4 h-4')}<span>Kembali</span></button>
+        ${isReadonly
+          ? `<button class="btn btn-primary" onclick="goToTahap(3)"><span>Ke Pasca-Observasi</span>${icon('arrow-right','w-4 h-4')}</button>`
+          : `<button id="btnNext2" class="btn btn-primary"><span>Lanjut ke Pasca-Observasi</span>${icon('arrow-right','w-4 h-4')}</button>`}
+      </div>`;
   }
 
   function momenLabel(m) {
     const map = {
       'murid_aktif_konstruksi': 'Murid aktif mengkonstruksi pengetahuan',
-      'murid_berkolaborasi': 'Murid berkolaborasi (kerja kelompok, diskusi)',
-      'murid_refleksi': 'Murid melakukan refleksi / metakognisi',
-      'guru_memuliakan': 'Guru memuliakan murid (mendengar, apresiasi)',
-      'guru_beri_tantangan': 'Guru memberi tantangan yang memotivasi',
-      'guru_fasilitasi': 'Guru memfasilitasi (bukan ceramah dominan)'
+      'murid_berkolaborasi': 'Murid berkolaborasi',
+      'murid_refleksi': 'Murid melakukan refleksi',
+      'guru_memuliakan': 'Guru memuliakan murid',
+      'guru_beri_tantangan': 'Guru memberi tantangan',
+      'guru_fasilitasi': 'Guru memfasilitasi'
     };
     return map[m] || m;
   }
 
   function bindTahap2() {
     if (isReadonly) return;
-
     document.querySelectorAll('#momenGrid input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        e.target.closest('label').classList.toggle('selected', e.target.checked);
-      });
+      cb.addEventListener('change', e => e.target.closest('label').classList.toggle('selected', e.target.checked));
     });
 
     el('btnNext2').addEventListener('click', async () => {
       const btn = el('btnNext2');
       btn.disabled = true;
-      btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+      btn.innerHTML = `${icon('loader-2','w-4 h-4')}<span>Menyimpan...</span>`;
       refreshIcons();
 
       try {
         const momen = [];
-        document.querySelectorAll('#momenGrid input[type="checkbox"]').forEach(cb => {
-          if (cb.checked) momen.push(cb.dataset.momen);
-        });
+        document.querySelectorAll('#momenGrid input[type="checkbox"]').forEach(cb => { if (cb.checked) momen.push(cb.dataset.momen); });
 
         const obsPayload = {
-          supervisi_id: supervisiData.id,
           catatan_aktivitas_guru: el('fAktivitasGuru').value.trim(),
           catatan_aktivitas_murid: el('fAktivitasMurid').value.trim(),
           catatan_momen_pm: momen,
@@ -818,22 +521,16 @@
           durasi_menit: parseInt(el('fDurasiObs').value || '0', 10) || null
         };
 
-        if (obsData && obsData.id) {
-          await sb.from('observasi').update(obsPayload).eq('id', obsData.id);
-        } else {
-          const { error } = await sb.from('observasi').insert([obsPayload]);
-          if (error) throw new Error(error.message);
-        }
-
+        const savedObs = await SupervisiAPI.saveObservasi(supervisiData.id, obsPayload);
         await SupervisiAPI.update(supervisiData.id, { status: 'pasca_observasi' });
 
         showToast('Observasi tersimpan', 'success');
         supervisiData.status = 'pasca_observasi';
-        obsData = { ...obsPayload, id: obsData ? obsData.id : null };
+        obsData = savedObs;
         goToTahap(3);
       } catch (err) {
         btn.disabled = false;
-        btn.innerHTML = `<span>Lanjut ke Pasca-Observasi</span>${icon('arrow-right', 'w-4 h-4')}`;
+        btn.innerHTML = `<span>Lanjut ke Pasca-Observasi</span>${icon('arrow-right','w-4 h-4')}`;
         refreshIcons();
         showToast('Gagal: ' + err.message, 'error');
       }
@@ -841,23 +538,23 @@
   }
 
   // ============================================================
-  // TAHAP 3 — PASCA-OBSERVASI (Refleksi + RTL)
+  // TAHAP 3 — PASCA-OBSERVASI (7 pertanyaan refleksi + RTL)
   // ============================================================
   function renderTahap3() {
     const p = pascaData || {};
     const disabled = isReadonly ? 'disabled' : '';
     const respon = p.respons_supervisor || {};
 
+    // 7 pertanyaan refleksi: gabungan 5 lama + 2 dari Modul 5
     const refleksi = [
+      { key: 'refleksi_ketercapaian_tujuan', q: 'Apakah murid mencapai tujuan pembelajaran?', help: 'Modul 5 no. 10 — guru menilai ketercapaian tujuan', modul5: true },
+      { key: 'refleksi_aspek_fokus', q: 'Bagaimana hasil aspek fokus observasi yang disepakati?', help: 'Modul 5 no. 11 — guru menilai aspek fokus yang dipilih', modul5: true },
       { key: 'refleksi_keberhasilan', q: 'Bagian mana yang berhasil?', help: 'Guru menyebutkan aspek positif dari pembelajaran' },
-      { key: 'refleksi_tantangan', q: 'Apa tantangan yang dihadapi?', help: 'Guru mengidentifikasi hambatan/masalah' },
-      { key: 'refleksi_solusi', q: 'Apa solusi yang Anda usulkan?', help: 'Guru mengembangkan gagasan perbaikan' },
+      { key: 'refleksi_tantangan', q: 'Apa tantangan yang dihadapi?', help: 'Modul 5 no. 12 — guru mengidentifikasi hambatan/masalah', modul5: true },
+      { key: 'refleksi_solusi', q: 'Apa solusi yang Anda usulkan?', help: 'Modul 5 no. 13 — guru mengembangkan gagasan perbaikan', modul5: true },
       { key: 'refleksi_tahapan', q: 'Bagaimana tahapan penerapannya?', help: 'Guru menjelaskan langkah konkret' },
       { key: 'refleksi_komitmen_waktu', q: 'Kapan akan diterapkan?', help: 'Guru berkomitmen waktu' }
     ];
-
-    // RTL items
-    const rtlItems = p.rtl_aksi ? [{ aksi: p.rtl_aksi, waktu: p.rtl_waktu, dukungan: p.rtl_dukungan, indikator: p.rtl_indikator }] : [{}];
 
     return `
       <div class="card" style="margin-bottom:1.5rem">
@@ -876,113 +573,70 @@
           </div>
 
           ${refleksi.map((r, i) => `
-            <div class="refleksi-box">
-              <div class="refleksi-label">${i + 1}. ${r.q}</div>
+            <div class="refleksi-box ${r.modul5 ? 'modul5' : ''}">
+              <div class="refleksi-label">
+                ${i + 1}. ${r.q}
+                ${r.modul5 ? '<span class="refleksi-badge">Modul 5</span>' : ''}
+              </div>
               <div class="refleksi-help">${r.help}</div>
-              <textarea class="textarea text-sm" rows="2" ${disabled}
-                        data-refleksi="${r.key}"
-                        placeholder="Tuliskan jawaban/refleksi guru...">${escapeHtml(p[r.key] || '')}</textarea>
+              <textarea class="textarea text-sm" rows="2" ${disabled} data-refleksi="${r.key}" placeholder="Tuliskan jawaban/refleksi guru...">${escapeHtml(p[r.key] || '')}</textarea>
 
               <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px dashed var(--slate-200)">
-                <div style="font-size:0.7rem; color:var(--slate-500); margin-bottom:0.35rem">
-                  Bagaimana Anda (supervisor) merespons?
-                </div>
+                <div style="font-size:0.7rem; color:var(--slate-500); margin-bottom:0.35rem">Bagaimana Anda (supervisor) merespons?</div>
                 <div style="display:flex; gap:0.5rem">
-                  <button type="button" class="respon-btn ${respon[r.key] === 'menanyakan' ? 'active' : ''}" 
-                          data-respon-key="${r.key}" data-value="menanyakan" ${disabled}>
-                    ✓ Menanyakan (guru bisa jawab sendiri)
-                  </button>
-                  <button type="button" class="respon-btn ${respon[r.key] === 'memberitahu' ? 'active' : ''}"
-                          data-respon-key="${r.key}" data-value="memberitahu" ${disabled}>
-                    ℹ Memberitahu (guru belum bisa)
-                  </button>
+                  <button type="button" class="respon-btn ${respon[r.key] === 'menanyakan' ? 'active' : ''}" data-respon-key="${r.key}" data-value="menanyakan" ${disabled}>✓ Menanyakan</button>
+                  <button type="button" class="respon-btn ${respon[r.key] === 'memberitahu' ? 'active' : ''}" data-respon-key="${r.key}" data-value="memberitahu" ${disabled}>ℹ Memberitahu</button>
                 </div>
               </div>
             </div>
           `).join('')}
 
-          <!-- RTL -->
           <div class="form-section" style="margin-top:1.5rem; padding-top:1.5rem; border-top:2px solid var(--slate-100)">
-            <div class="form-section-title">
-              <i data-lucide="target" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Rencana Tindak Lanjut (RTL)
-            </div>
-            <div class="form-hint">
-              RTL diisi berdasarkan kesepakatan dengan guru. Rencana aksi spesifik, waktu jelas, indikator terukur.
-            </div>
-
+            <div class="form-section-title"><i data-lucide="target" class="w-4 h-4" style="color:var(--brand-500)"></i>Rencana Tindak Lanjut (RTL)</div>
+            <div class="form-hint">RTL diisi berdasarkan kesepakatan dengan guru. Spesifik, waktu jelas, indikator terukur.</div>
             <div style="display:grid; grid-template-columns:1fr; gap:0.75rem">
               <div>
                 <label class="label">Rencana Aksi</label>
-                <textarea id="fRtlAksi" class="textarea" rows="2" ${disabled}
-                          placeholder="Contoh: Menerapkan teknik Think-Pair-Share pada pertemuan berikutnya">${escapeHtml(p.rtl_aksi || '')}</textarea>
+                <textarea id="fRtlAksi" class="textarea" rows="2" ${disabled} placeholder="Contoh: Menerapkan teknik Think-Pair-Share...">${escapeHtml(p.rtl_aksi || '')}</textarea>
               </div>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
                 <div>
                   <label class="label">Waktu Pelaksanaan</label>
-                  <input type="text" id="fRtlWaktu" class="input" ${disabled}
-                         value="${escapeHtml(p.rtl_waktu || '')}"
-                         placeholder="Contoh: Pertemuan Kamis, 20 Okt 2026" />
+                  <input type="text" id="fRtlWaktu" class="input" ${disabled} value="${escapeHtml(p.rtl_waktu || '')}" placeholder="Contoh: Pertemuan Kamis, 20 Okt 2026" />
                 </div>
                 <div>
                   <label class="label">Dukungan yang Diperlukan</label>
-                  <input type="text" id="fRtlDukungan" class="input" ${disabled}
-                         value="${escapeHtml(p.rtl_dukungan || '')}"
-                         placeholder="Contoh: LKPD berbasis masalah" />
+                  <input type="text" id="fRtlDukungan" class="input" ${disabled} value="${escapeHtml(p.rtl_dukungan || '')}" placeholder="Contoh: LKPD berbasis masalah" />
                 </div>
               </div>
               <div>
                 <label class="label">Indikator Keberhasilan</label>
-                <input type="text" id="fRtlIndikator" class="input" ${disabled}
-                       value="${escapeHtml(p.rtl_indikator || '')}"
-                       placeholder="Contoh: Minimal 80% murid aktif berdiskusi dalam kelompok" />
+                <input type="text" id="fRtlIndikator" class="input" ${disabled} value="${escapeHtml(p.rtl_indikator || '')}" placeholder="Contoh: Minimal 80% murid aktif berdiskusi" />
               </div>
             </div>
           </div>
 
-          <!-- Link dokumentasi -->
           <div class="form-section">
-            <div class="form-section-title">
-              <i data-lucide="link" class="w-4 h-4" style="color:var(--brand-500)"></i>
-              Link Dokumentasi (Opsional)
-            </div>
-            <input type="url" id="fLinkDok" class="input" ${disabled}
-                   value="${escapeHtml(p.link_dokumentasi || '')}"
-                   placeholder="https://drive.google.com/..." />
+            <div class="form-section-title"><i data-lucide="link" class="w-4 h-4" style="color:var(--brand-500)"></i>Link Dokumentasi (Opsional)</div>
+            <input type="url" id="fLinkDok" class="input" ${disabled} value="${escapeHtml(p.link_dokumentasi || '')}" placeholder="https://drive.google.com/..." />
           </div>
-
         </div>
       </div>
 
       <div style="display:flex; justify-content:space-between; gap:0.5rem; margin-bottom:3rem">
-        <button class="btn btn-ghost" onclick="goToTahap(2)">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i>
-          <span>Kembali</span>
-        </button>
+        <button class="btn btn-ghost" onclick="goToTahap(2)">${icon('arrow-left','w-4 h-4')}<span>Kembali</span></button>
         ${!isReadonly ? `
           <div style="display:flex; gap:0.5rem">
-            <button id="btnSaveDraft" class="btn btn-secondary">
-              <i data-lucide="save" class="w-4 h-4"></i>
-              <span>Simpan Draft</span>
-            </button>
-            <button id="btnSelesai" class="btn btn-primary">
-              <i data-lucide="check-circle" class="w-4 h-4"></i>
-              <span>Selesaikan Supervisi</span>
-            </button>
-          </div>
-        ` : `
-          <button id="btnCetakPdf" class="btn btn-primary">
-            <i data-lucide="file-text" class="w-4 h-4"></i>
-            <span>Cetak Laporan</span>
-          </button>
-        `}
-      </div>
-    `;
+            <button id="btnSaveDraft" class="btn btn-secondary">${icon('save','w-4 h-4')}<span>Simpan Draft</span></button>
+            <button id="btnSelesai" class="btn btn-primary">${icon('check-circle','w-4 h-4')}<span>Selesaikan Supervisi</span></button>
+          </div>` : `
+          <button id="btnCetakPdf" class="btn btn-primary">${icon('file-text','w-4 h-4')}<span>Cetak Laporan</span></button>`}
+      </div>`;
   }
 
   function pendekatanGuide(pendekatan) {
     const map = {
-      directive_control: 'Guru dengan tipe ini butuh <strong>arahan langsung yang jelas dan spesifik</strong>. Beri tahu masalah, beri contoh konkret, dampingi praktik.',
+      directive_control: 'Guru tipe ini butuh <strong>arahan langsung yang jelas dan spesifik</strong>. Beri tahu masalah, beri contoh konkret, dampingi praktik.',
       directive_informational: 'Beri <strong>2–3 alternatif solusi</strong>, biarkan guru memilih. Beri contoh & dampingi praktik.',
       collaborative: 'Gunakan <strong>pertanyaan coaching</strong> untuk menggali refleksi guru. Negosiasi & bagi tugas untuk penerapan.',
       non_directive: 'Guru <strong>mampu merefleksi sendiri</strong>. Tahan diri untuk tidak memberi jawaban — cukup bertanya untuk memfasilitasi pemikiran guru.'
@@ -991,22 +645,17 @@
   }
 
   function bindTahap3() {
-    // Respon buttons
     document.querySelectorAll('.respon-btn').forEach(btn => {
       if (isReadonly) return;
       btn.addEventListener('click', () => {
         const key = btn.dataset.responKey;
-        const value = btn.dataset.value;
-        // Reset both buttons untuk key ini
         document.querySelectorAll(`.respon-btn[data-respon-key="${key}"]`).forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
       });
     });
 
     if (isReadonly) {
-      el('btnCetakPdf').addEventListener('click', () => {
-        showToast('Fitur cetak akan tersedia di sprint berikutnya', 'info');
-      });
+      el('btnCetakPdf').addEventListener('click', () => showToast('Fitur cetak akan tersedia di sprint berikutnya', 'info'));
       return;
     }
 
@@ -1017,24 +666,17 @@
   async function savePasca(selesai) {
     const btn = selesai ? el('btnSelesai') : el('btnSaveDraft');
     btn.disabled = true;
-    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+    btn.innerHTML = `${icon('loader-2','w-4 h-4')}<span>Menyimpan...</span>`;
     refreshIcons();
 
     try {
-      // Kumpulkan refleksi
       const refleksiData = {};
-      document.querySelectorAll('[data-refleksi]').forEach(t => {
-        refleksiData[t.dataset.refleksi] = t.value.trim();
-      });
+      document.querySelectorAll('[data-refleksi]').forEach(t => { refleksiData[t.dataset.refleksi] = t.value.trim(); });
 
-      // Kumpulkan respon supervisor
       const respon = {};
-      document.querySelectorAll('.respon-btn.active').forEach(b => {
-        respon[b.dataset.responKey] = b.dataset.value;
-      });
+      document.querySelectorAll('.respon-btn.active').forEach(b => { respon[b.dataset.responKey] = b.dataset.value; });
 
       const pascaPayload = {
-        supervisi_id: supervisiData.id,
         ...refleksiData,
         respons_supervisor: respon,
         rtl_aksi: el('fRtlAksi').value.trim(),
@@ -1044,38 +686,29 @@
         link_dokumentasi: el('fLinkDok').value.trim()
       };
 
-      if (pascaData && pascaData.id) {
-        const { error } = await sb.from('pasca_observasi').update(pascaPayload).eq('id', pascaData.id);
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await sb.from('pasca_observasi').insert([pascaPayload]);
-        if (error) throw new Error(error.message);
-      }
+      const savedPasca = await SupervisiAPI.savePasca(supervisiData.id, pascaPayload);
+      pascaData = savedPasca;
 
       if (selesai) {
-        await SupervisiAPI.update(supervisiData.id, {
-          status: 'selesai',
-          tanggal_selesai: new Date().toISOString().slice(0, 10)
-        });
+        await SupervisiAPI.selesaikan(supervisiData.id);
         showToast('Supervisi selesai!', 'success');
-        setTimeout(() => window.location.href = '/sispa-v2/ks/pelaksanaan.html', 1200);
+        setTimeout(() => window.location.href = '/sispa-v2/ks/program.html', 1200);
       } else {
         showToast('Draft tersimpan', 'success');
         btn.disabled = false;
-        btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan Draft</span>`;
+        btn.innerHTML = `${icon('save','w-4 h-4')}<span>Simpan Draft</span>`;
         refreshIcons();
       }
     } catch (err) {
       btn.disabled = false;
       btn.innerHTML = selesai
-        ? `${icon('check-circle', 'w-4 h-4')}<span>Selesaikan Supervisi</span>`
-        : `${icon('save', 'w-4 h-4')}<span>Simpan Draft</span>`;
+        ? `${icon('check-circle','w-4 h-4')}<span>Selesaikan Supervisi</span>`
+        : `${icon('save','w-4 h-4')}<span>Simpan Draft</span>`;
       refreshIcons();
       showToast('Gagal: ' + err.message, 'error');
     }
   }
 
-  // Expose untuk tombol inline
   window.goToTahap = goToTahap;
 </script>
 </body>
