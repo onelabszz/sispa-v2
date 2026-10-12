@@ -185,10 +185,6 @@ function openProfileMenu(anchorBtn) {
       </div>
       <div style="font-size:0.75rem; color:var(--slate-400); margin-top:0.125rem">${roleLabel}</div>
     </div>
-    <a href="/sispa-v2/panduan.html" class="nav-item" style="border-radius:8px">
-      ${icon('book-open', 'w-4 h-4')}<span>Panduan</span>
-    </a>
-    <div style="height:1px; background:var(--slate-100); margin:4px 0"></div>
     <button id="profileLogoutBtn" class="nav-item" style="width:100%; border:none; background:transparent; color:var(--danger); text-align:left; border-radius:8px; cursor:pointer">
       ${icon('log-out', 'w-4 h-4')}<span>Keluar</span>
     </button>`;
