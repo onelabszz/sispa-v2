@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /ks/
+Disallow: /admin/
+Disallow: /pengawas/
+Disallow: /guru/
+
+Sitemap: https://onelabszz.github.io/sispa-v2/sitemap.xml
