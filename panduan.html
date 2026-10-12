@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Panduan Pengguna</title>
+<meta name="description" content="Panduan penggunaan SISPA — Sistem Informasi Supervisi Pendidikan Akademik. Berbasis Modul 5: Supervisi Akademik pada Pembelajaran Mendalam termasuk Koding & Kecerdasan Artifisial." />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .panduan-body { max-width: 900px; margin: 0 auto; }
+  .panduan-body h2 { font-size: 1.25rem; font-weight: 700; color: var(--slate-900); margin: 2.5rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--brand-100); display: flex; align-items: center; gap: 0.5rem; }
+  .panduan-body h3 { font-size: 1rem; font-weight: 600; color: var(--slate-800); margin: 1.5rem 0 0.5rem; }
+  .panduan-body p { font-size: 0.9375rem; color: var(--slate-700); line-height: 1.7; margin: 0 0 1rem; }
+  .panduan-body ul, .panduan-body ol { font-size: 0.9375rem; color: var(--slate-700); line-height: 1.7; padding-left: 1.5rem; margin: 0 0 1rem; }
+  .panduan-body li { margin-bottom: 0.35rem; }
+  .panduan-body code { background: var(--slate-100); padding: 0.1rem 0.35rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--brand-700); }
+  .callout { padding: 1rem 1.25rem; border-radius: 10px; margin: 1rem 0; font-size: 0.9rem; line-height: 1.6; }
+  .callout-info { background: #dbeafe; border-left: 4px solid #0ea5e9; color: #1e3a8a; }
+  .callout-warning { background: #fef3c7; border-left: 4px solid #f59e0b; color: #78350f; }
+  .callout-success { background: #dcfce7; border-left: 4px solid #16a34a; color: #14532d; }
+
+  .step-flow { display: flex; flex-direction: column; gap: 0.75rem; margin: 1rem 0; }
+  .step-item { display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; background: white; border: 1px solid var(--slate-200); border-radius: 10px; }
+  .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-600); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; flex-shrink: 0; }
+  .step-item .step-body { flex: 1; }
+  .step-item .step-title { font-weight: 600; font-size: 0.95rem; color: var(--slate-900); margin-bottom: 0.25rem; }
+  .step-item .step-desc { font-size: 0.85rem; color: var(--slate-600); line-height: 1.6; }
+
+  .tipe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+  .tipe-card { padding: 1rem; border-radius: 10px; border: 2px solid; }
+  .tipe-card h4 { font-weight: 700; margin: 0 0 0.35rem; font-size: 0.95rem; }
+  .tipe-card p { font-size: 0.8rem; margin: 0; line-height: 1.5; }
+  .tipe-card.dropout { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+  .tipe-card.unfocused { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+  .tipe-card.analytical { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+  .tipe-card.professional { background: #f0fdf4; border-color: #86efac; color: #166534; }
+
+  details.faq { padding: 1rem; background: white; border: 1px solid var(--slate-200); border-radius: 10px; margin-bottom: 0.75rem; }
+  details.faq summary { cursor: pointer; font-weight: 600; font-size: 0.95rem; color: var(--slate-900); list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: '+'; font-size: 1.25rem; color: var(--slate-400); font-weight: 400; transition: transform .2s; }
+  details.faq[open] summary::after { transform: rotate(45deg); }
+  details.faq > div { padding-top: 0.75rem; font-size: 0.875rem; color: var(--slate-600); line-height: 1.7; }
+
+  .toc { position: sticky; top: 80px; }
+  .toc a { display: block; padding: 0.35rem 0.75rem; font-size: 0.8rem; color: var(--slate-600); text-decoration: none; border-left: 2px solid transparent; transition: all .15s; }
+  .toc a:hover { color: var(--brand-700); background: var(--brand-50); border-left-color: var(--brand-500); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header style="background:linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color:white; padding:1.5rem 1rem">
+  <div class="panduan-body" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap">
+    <div style="display:flex; align-items:center; gap:0.75rem">
+      <div style="width:44px; height:44px; background:rgba(255,255,255,.15); backdrop-filter:blur(10px); border-radius:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.2)">
+        <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <div style="font-weight:700; font-size:1.125rem">SISPA</div>
+        <div style="font-size:0.75rem; color:#c7d2fe">Sistem Informasi Supervisi Pendidikan Akademik</div>
+      </div>
+    </div>
+    <a href="/sispa-v2/index.html" class="btn" style="background:rgba(255,255,255,.15); color:white; border:1px solid rgba(255,255,255,.25)">
+      <i data-lucide="log-in" class="w-4 h-4"></i>
+      <span>Masuk Aplikasi</span>
+    </a>
+  </div>
+</header>
+
+<!-- Hero -->
+<div style="background:#eef2ff; padding:3rem 1rem 2rem; text-align:center">
+  <div class="panduan-body">
+    <h1 style="font-size:2rem; font-weight:800; color:var(--slate-900); margin:0 0 0.75rem">
+      Panduan Pengguna SISPA
+    </h1>
+    <p style="font-size:1rem; color:var(--slate-600); max-width:640px; margin:0 auto; line-height:1.7">
+      Aplikasi supervisi akademik berbasis <strong>Modul 5 — Supervisi Akademik pada Pembelajaran Mendalam termasuk Koding & Kecerdasan Artifisial</strong>.
+    </p>
+  </div>
+</div>
+
+<!-- Konten -->
+<main style="padding:2rem 1rem 4rem">
+  <div class="panduan-body">
+
+    <!-- Daftar Isi -->
+    <nav class="card" style="padding:1.25rem; margin-bottom:2rem; background:white">
+      <div style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="list" class="w-4 h-4"></i>
+        <span>Daftar Isi</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.25rem">
+        <a href="#tentang" class="toc-link">1. Tentang SISPA</a>
+        <a href="#filosofi" class="toc-link">2. Filosofi & Prinsip</a>
+        <a href="#alur" class="toc-link">3. Alur Supervisi 3 Tahap</a>
+        <a href="#tipe" class="toc-link">4. Tipe Guru & Pendekatan</a>
+        <a href="#pm-kka" class="toc-link">5. Pembelajaran Mendalam & KKA</a>
+        <a href="#mulai" class="toc-link">6. Cara Mulai</a>
+        <a href="#faq" class="toc-link">7. Pertanyaan Umum</a>
+        <a href="#kontak" class="toc-link">8. Bantuan</a>
+      </div>
+    </nav>
+
+    <!-- 1. Tentang -->
+    <section id="tentang">
+      <h2><i data-lucide="info" class="w-5 h-5" style="color:var(--brand-600)"></i> 1. Tentang SISPA</h2>
+      <p>
+        SISPA (Sistem Informasi Supervisi Pendidikan Akademik) adalah aplikasi yang membantu
+        <strong>Kepala Sekolah</strong> dan <strong>Pengawas Sekolah</strong> melaksanakan supervisi akademik
+        yang bermakna, reflektif, dan berfokus pada pengembangan profesional guru.
+      </p>
+      <p>
+        Aplikasi ini dibangun berdasarkan <strong>Modul 5 Bakal Calon Kepala Sekolah (2026)</strong> dengan
+        pendekatan Glickman (2002) tentang tipe guru dan pendekatan supervisi.
+      </p>
+
+      <div class="callout callout-info">
+        <strong>Untuk siapa?</strong><br>
+        • <strong>Kepala Sekolah (KS)</strong> — menyusun program, melaksanakan supervisi, membina guru<br>
+        • <strong>Pengawas Sekolah</strong> — memantau supervisi lintas sekolah binaan<br>
+        • <strong>Admin</strong> — mengelola pengguna, sekolah, dan konfigurasi sistem
+      </div>
+    </section>
+
+    <!-- 2. Filosofi -->
+    <section id="filosofi">
+      <h2><i data-lucide="heart" class="w-5 h-5" style="color:var(--brand-600)"></i> 2. Filosofi & Prinsip</h2>
+
+      <h3>Supervisi ≠ Penilaian</h3>
+      <p>
+        Supervisi akademik bertujuan <strong>membantu guru berkembang</strong>, bukan menilai kinerja.
+        Berbeda dengan evaluasi kinerja, supervisi:
+      </p>
+      <ul>
+        <li>Menggunakan <strong>sebagian indikator</strong> yang dipilih guru sendiri sesuai kebutuhan</li>
+        <li><strong>Tidak dijadikan skor atau level kinerja</strong></li>
+        <li>Berfokus pada <strong>refleksi dan bantuan</strong> untuk perbaikan</li>
+      </ul>
+
+      <div class="callout callout-warning">
+        <strong>⚠️ Non-judgmental</strong><br>
+        SISPA <strong>tidak menampilkan skor 1–4</strong>, tidak memberi label "Mahir/Berkembang", dan tidak
+        memeringkat guru. Data yang dikumpulkan berupa <strong>catatan deskriptif</strong> aktivitas guru & murid.
+      </div>
+
+      <h3>Perbedaan Supervisi, Monitoring, Evaluasi</h3>
+      <div style="overflow-x:auto; margin:1rem 0">
+        <table class="table" style="font-size:0.85rem">
+          <thead>
+            <tr>
+              <th>Aspek</th>
+              <th style="text-align:center">Supervisi</th>
+              <th style="text-align:center">Monitoring</th>
+              <th style="text-align:center">Evaluasi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Tujuan</strong></td>
+              <td>Membantu guru meningkat</td>
+              <td>Cek progres</td>
+              <td>Beri skor & level</td>
+            </tr>
+            <tr>
+              <td><strong>Data</strong></td>
+              <td>Kualitatif (catatan)</td>
+              <td>Kuantitatif (ceklist)</td>
+              <td>Skor & level</td>
+            </tr>
+            <tr>
+              <td><strong>Instrumen</strong></td>
+              <td>Berbeda per guru</td>
+              <td>Sama untuk semua</td>
+              <td>Sama untuk semua</td>
+            </tr>
+            <tr>
+              <td><strong>Sifat</strong></td>
+              <td>Non-judgmental</td>
+              <td>Non-judgmental</td>
+              <td>Judgmental</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. Alur Supervisi -->
+    <section id="alur">
+      <h2><i data-lucide="git-branch" class="w-5 h-5" style="color:var(--brand-600)"></i> 3. Alur Supervisi 3 Tahap</h2>
+
+      <div class="step-flow">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Pra-Observasi (3–5 menit)</div>
+            <div class="step-desc">
+              Supervisor dan guru berdiskusi: tujuan pembelajaran, strategi PM, asesmen,
+              DPL target, serta <strong>kesepakatan aspek fokus observasi</strong> (satu aspek saja).
+            </div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Observasi Pembelajaran (durasi sesuai jadwal)</div>
+            <div class="step-desc">
+              Supervisor mencatat <strong>aktivitas faktual</strong> guru dan murid — apa yang dilihat
+              dan didengar. Tidak mencatat opini, tidak menilai.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Pasca-Observasi (5–7 menit)</div>
+            <div class="step-desc">
+              Guru <strong>berefleksi terlebih dahulu</strong> (7 pertanyaan terstruktur). Supervisor
+              merespons secara adaptif: <em>menanyakan</em> (untuk guru kolaboratif/non-direktif)
+              atau <em>memberitahu</em> (untuk guru direktif). Diakhiri dengan <strong>RTL</strong>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-success">
+        <strong>✅ Kembali ke Program</strong><br>
+        Setelah tahap 3 selesai, sesi supervisi berstatus <em>Selesai</em> dan KS kembali ke halaman
+        Program untuk melanjutkan ke guru berikutnya.
+      </div>
+    </section>
+
+    <!-- 4. Tipe Guru -->
+    <section id="tipe">
+      <h2><i data-lucide="compass" class="w-5 h-5" style="color:var(--brand-600)"></i> 4. Tipe Guru & Pendekatan Supervisi</h2>
+
+      <p>
+        Berdasarkan <strong>Glickman (2002)</strong>, tipe guru ditentukan oleh kombinasi
+        <strong>level abstraksi</strong> (kemampuan menganalisis masalah) dan <strong>level komitmen</strong>
+        (kesediaan waktu untuk perbaikan).
+      </p>
+
+      <div class="tipe-grid">
+        <div class="tipe-card dropout">
+          <h4>Kuadran I — Dropout</h4>
+          <p>Abstraksi & komitmen rendah</p>
+          <p style="margin-top:0.5rem"><strong>Pendekatan:</strong> Directive-Control (mentoring)</p>
+        </div>
+        <div class="tipe-card unfocused">
+          <h4>Kuadran II — Unfocused Worker</h4>
+          <p>Abstraksi rendah, komitmen tinggi</p>
+          <p style="margin-top:0.5rem"><strong>Pendekatan:</strong> Directive-Informational (mentoring)</p>
+        </div>
+        <div class="tipe-card analytical">
+          <h4>Kuadran III — Analytical Observer</h4>
+          <p>Abstraksi tinggi, komitmen rendah</p>
+          <p style="margin-top:0.5rem"><strong>Pendekatan:</strong> Collaborative (coaching)</p>
+        </div>
+        <div class="tipe-card professional">
+          <h4>Kuadran IV — Professional</h4>
+          <p>Abstraksi & komitmen tinggi</p>
+          <p style="margin-top:0.5rem"><strong>Pendekatan:</strong> Non-Directive (coaching)</p>
+        </div>
+      </div>
+
+      <h3>Penilaian Tipe</h3>
+      <ol>
+        <li>Amati pembelajaran → catat kesenjangan</li>
+        <li>Tanya: <em>"Apa masalahnya? Bagaimana memperbaikinya?"</em>
+          <br>→ Tidak mampu = abstraksi <strong>rendah</strong> · Mampu = abstraksi <strong>tinggi</strong>
+        </li>
+        <li>Tanya kesediaan waktu untuk perbaikan
+          <br>→ Tidak bersedia = komitmen <strong>rendah</strong> · Bersedia = komitmen <strong>tinggi</strong>
+        </li>
+        <li>Sistem otomatis menentukan tipe & merekomendasikan pendekatan</li>
+      </ol>
+    </section>
+
+    <!-- 5. PM & KKA -->
+    <section id="pm-kka">
+      <h2><i data-lucide="sparkles" class="w-5 h-5" style="color:var(--brand-600)"></i> 5. Pembelajaran Mendalam & KKA</h2>
+
+      <h3>3 Prinsip Pembelajaran Mendalam</h3>
+      <ul>
+        <li><strong>Berkesadaran</strong> — murid sadar proses berpikir, terlibat aktif dalam strategi belajar</li>
+        <li><strong>Bermakna</strong> — materi dikaitkan dengan realitas, budaya, dan pengalaman murid</li>
+        <li><strong>Menggembirakan</strong> — suasana positif, menantang, memotivasi, menghargai kontribusi</li>
+      </ul>
+
+      <h3>3 Pengalaman Belajar</h3>
+      <ul>
+        <li><strong>Memahami</strong> — murid mengonstruksi pengetahuan dari berbagai sumber</li>
+        <li><strong>Mengaplikasi</strong> — murid menerapkan pengetahuan ke situasi nyata</li>
+        <li><strong>Merefleksi</strong> — murid meregulasi diri & mengevaluasi cara belajarnya</li>
+      </ul>
+
+      <h3>8 Dimensi Profil Lulusan (DPL)</h3>
+      <ol style="columns:2; column-gap:2rem">
+        <li>Keimanan & Ketakwaan</li>
+        <li>Kewargaan</li>
+        <li>Penalaran Kritis</li>
+        <li>Kreativitas</li>
+        <li>Kolaborasi</li>
+        <li>Kemandirian</li>
+        <li>Kesehatan</li>
+        <li>Komunikasi</li>
+      </ol>
+
+      <h3>Koding & Kecerdasan Artifisial (KKA)</h3>
+      <p>
+        Integrasi KKA dalam pembelajaran bertujuan mengembangkan <em>computational thinking</em>
+        dan pemanfaatan AI sebagai alat eksplorasi, simulasi, dan analisis — bukan sekadar
+        keterampilan teknis. SISPA memungkinkan supervisor mencatat integrasi KKA di setiap sesi,
+        dan menampilkan analisisnya di halaman <strong>Analisis PM & KKA</strong>.
+      </p>
+    </section>
+
+    <!-- 6. Cara Mulai -->
+    <section id="mulai">
+      <h2><i data-lucide="play-circle" class="w-5 h-5" style="color:var(--brand-600)"></i> 6. Cara Mulai untuk Kepala Sekolah</h2>
+
+      <div class="step-flow">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Login dengan NPSN</div>
+            <div class="step-desc">Gunakan email & password yang diberikan admin. Hubungi admin jika belum punya akun.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Data Guru → Tambah guru</div>
+            <div class="step-desc">Masukkan data guru: nama, NIP, mapel, kelas, status kepegawaian.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Profil Tipe Guru → Nilai tipe</div>
+            <div class="step-desc">Amati pembelajaran, tentukan level abstraksi & komitmen. Sistem menentukan tipe & pendekatan.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Program Supervisi → Tambah ke Program</div>
+            <div class="step-desc">Pilih guru, tentukan periode, jadwalkan. Tipe & pendekatan otomatis terisi.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Mulai Supervisi (3 tahap)</div>
+            <div class="step-desc">Klik tombol "Mulai" pada guru → isi Pra-Observasi, Observasi, Pasca-Observasi.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <div class="step-title">Riwayat & Cetak</div>
+            <div class="step-desc">Buka Riwayat → lihat semua sesi → cetak PDF per sesi yang sudah selesai.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. FAQ -->
+    <section id="faq">
+      <h2><i data-lucide="help-circle" class="w-5 h-5" style="color:var(--brand-600)"></i> 7. Pertanyaan Umum</h2>
+
+      <details class="faq">
+        <summary>Apakah SISPA memberi skor atau nilai ke guru?</summary>
+        <div>
+          <strong>Tidak.</strong> Sesuai filosofi Modul 5, SISPA tidak menampilkan skor 1–4, tidak memberi
+          label "Mahir/Berkembang", dan tidak memeringkat guru. Data yang dikumpulkan hanya catatan
+          deskriptif aktivitas guru & murid untuk keperluan refleksi dan pembinaan.
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Bagaimana jika guru belum punya tipe?</summary>
+        <div>
+          Anda tetap bisa memulai supervisi, tapi pendekatan akan diset default ke <code>Collaborative</code>.
+          Sebaiknya nilai tipe guru terlebih dahulu di menu <strong>Profil Tipe Guru</strong> agar pendekatan
+          yang dipilih sesuai dengan kebutuhan guru.
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Apakah bisa edit supervisi yang sudah "Selesai"?</summary>
+        <div>
+          Tidak. Setelah diselesaikan, sesi menjadi <strong>read-only</strong> untuk menjaga integritas data.
+          Jika perlu revisi, hubungi Pengawas Sekolah atau Admin untuk membuka kembali sesi.
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Bagaimana cara cetak laporan PDF?</summary>
+        <div>
+          Buka <strong>Riwayat</strong> → cari sesi dengan status <em>Selesai</em> → klik tombol
+          <strong>Cetak</strong>. Tab baru akan terbuka dengan format laporan siap cetak (A4).
+          Gunakan "Save as PDF" dari dialog print untuk menyimpan sebagai PDF.
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Lupa password, bagaimana?</summary>
+        <div>
+          Hubungi Admin aplikasi. Admin dapat mereset password Anda melalui menu
+          <strong>Users → Reset Password</strong>.
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Apakah data saya aman?</summary>
+        <div>
+          Ya. Aplikasi menggunakan Supabase dengan autentikasi berbasis token, enkripsi HTTPS,
+          dan <strong>Row Level Security (RLS)</strong> — artinya KS hanya bisa melihat data sekolahnya,
+          Pengawas hanya melihat sekolah binaannya.
+        </div>
+      </details>
+    </section>
+
+    <!-- 8. Kontak -->
+    <section id="kontak">
+      <h2><i data-lucide="mail" class="w-5 h-5" style="color:var(--brand-600)"></i> 8. Bantuan</h2>
+      <p>
+        Jika mengalami kendala teknis atau memiliki pertanyaan yang belum terjawab, hubungi:
+      </p>
+      <ul>
+        <li><strong>Admin aplikasi</strong> — untuk reset password, perubahan data akun, atau masalah teknis</li>
+        <li><strong>Pengawas Sekolah</strong> — untuk pertanyaan terkait prosedur supervisi & pembinaan</li>
+      </ul>
+      <div class="callout callout-info">
+        Referensi lengkap: <strong>Modul 5 — Supervisi Akademik pada Pembelajaran Mendalam termasuk
+        Koding dan Kecerdasan Artifisial</strong> (Bakal Calon Kepala Sekolah, 2026).
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <div style="text-align:center; margin-top:3rem">
+      <a href="/sispa-v2/index.html" class="btn btn-primary" style="padding:0.75rem 1.5rem; font-size:0.95rem">
+        <i data-lucide="log-in" class="w-4 h-4"></i>
+        <span>Masuk ke Aplikasi</span>
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<footer style="background:var(--slate-900); color:var(--slate-400); padding:1.5rem 1rem; text-align:center; font-size:0.8rem">
+  <div class="panduan-body">
+    © <span id="year"></span> SISPA · Sistem Informasi Supervisi Pendidikan Akademik
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Refresh icons
+  function refreshIcons() {
+    if (window.lucide) window.lucide.createIcons();
+    else setTimeout(refreshIcons, 100);
+  }
+  refreshIcons();
+
+  // Smooth scroll untuk TOC
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });
+      }
+    });
+  });
+</script>
+</body>
+</html>
