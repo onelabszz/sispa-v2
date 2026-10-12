@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Program Supervisi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Program Supervisi</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">
+      Rencana supervisi per guru berdasarkan tipe & pendekatan
+    </p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <input type="text" id="periodeInput" class="input" style="width:auto; min-width:180px" />
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+    <button id="btnAdd" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      <span>Tambah ke Program</span>
+    </button>
+  </div>
+</div>
+
+<div id="miniStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.5rem"></div>
+
+<div class="card" style="overflow:hidden">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="clipboard-list" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Daftar Rencana</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+    </div>
+  </div>
+  <div id="tableWrap" style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Guru</th>
+          <th style="text-align:center">Tipe</th>
+          <th>Pendekatan</th>
+          <th>Waktu Rencana</th>
+          <th style="text-align:center">Status</th>
+          <th style="text-align:right; width:160px">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="clipboard-list" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada program</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0 0 1rem">Tambahkan guru untuk dijadwalkan supervisi</p>
+    <button onclick="document.getElementById('btnAdd').click()" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i><span>Tambah ke Program</span>
+    </button>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/program.js"></script>
+<script src="/sispa-v2/assets/js/api/profil-tipe.js"></script>
+<script src="/sispa-v2/assets/js/api/supervisi.js"></script>
+<script>
+  let user = null;
+  let programList = [];
+  let tipeMap = {}; // guru_id → tipe record
+  let supervisiByGuru = {}; // guru_id → supervisi record terbaru
+  let periode = '';
+
+  initPage('ks', 'program', async (u) => {
+    user = u;
+    periode = ProgramAPI.getPeriodeDefault();
+    document.getElementById('periodeInput').value = periode;
+    await loadData();
+  });
+
+  async function loadData() {
+    await withLoading('Memuat program...', async () => {
+      try {
+        // Program list
+        programList = await ProgramAPI.list({ npsn_sekolah: user.npsn, periode });
+
+        // Tipe guru (untuk tampilkan tipe & pendekatan)
+        const guruIds = programList.map(p => p.guru_id);
+        if (guruIds.length > 0) {
+          const tipeList = await ProfilTipeAPI.listByGuruIds(guruIds);
+          tipeMap = {};
+          tipeList.forEach(t => {
+            const ex = tipeMap[t.guru_id];
+            if (!ex || new Date(t.created_at) > new Date(ex.created_at)) {
+              tipeMap[t.guru_id] = t;
+            }
+          });
+        } else {
+          tipeMap = {};
+        }
+
+        // Supervisi yang sudah dibuat per guru
+        const supList = await SupervisiAPI.list({ npsn_sekolah: user.npsn });
+        supervisiByGuru = {};
+        supList.forEach(s => {
+          const ex = supervisiByGuru[s.guru_id];
+          if (!ex || new Date(s.created_at) > new Date(ex.created_at)) {
+            supervisiByGuru[s.guru_id] = s;
+          }
+        });
+
+        renderStats();
+        renderTable();
+      } catch (err) {
+        showToast('Gagal memuat: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderStats() {
+    const total = programList.length;
+    const sudah = programList.filter(p => supervisiByGuru[p.guru_id]).length;
+    const belum = total - sudah;
+
+    document.getElementById('miniStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Total Rencana</div><div style="font-size:1.25rem; font-weight:700">${total}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Sudah Disupervisi</div><div style="font-size:1.25rem; font-weight:700">${sudah}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="clock" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Belum</div><div style="font-size:1.25rem; font-weight:700">${belum}</div></div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const wrap = document.getElementById('tableWrap');
+    const empty = document.getElementById('emptyState');
+
+    wrap.style.display = 'none';
+    empty.classList.add('hidden');
+
+    if (!programList.length) {
+      empty.classList.remove('hidden');
+      document.getElementById('resultCount').textContent = 0;
+      refreshIcons();
+      return;
+    }
+    wrap.style.display = 'block';
+    document.getElementById('resultCount').textContent = programList.length;
+
+    const tipeBadge = {
+      dropout: { cls: 'badge-danger', label: 'Dropout' },
+      unfocused_worker: { cls: 'badge-warning', label: 'Unfocused' },
+      analytical_observer: { cls: 'badge-info', label: 'Analytical' },
+      professional: { cls: 'badge-success', label: 'Professional' }
+    };
+
+    tbody.innerHTML = programList.map(p => {
+      const t = tipeMap[p.guru_id];
+      const sup = supervisiByGuru[p.guru_id];
+      const tipeInfo = t ? tipeBadge[t.tipe] : null;
+
+      let statusBadge;
+      if (!sup) {
+        statusBadge = '<span class="badge badge-neutral">Belum</span>';
+      } else if (sup.status === 'selesai') {
+        statusBadge = '<span class="badge badge-success">Selesai</span>';
+      } else if (sup.status === 'draft') {
+        statusBadge = '<span class="badge badge-neutral">Draft</span>';
+      } else {
+        statusBadge = '<span class="badge badge-warning">Berjalan</span>';
+      }
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.75rem">
+              <div style="width:36px; height:36px; border-radius:50%; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.875rem; flex-shrink:0">
+                ${escapeHtml((p.guru?.nama || 'G').charAt(0).toUpperCase())}
+              </div>
+              <div style="min-width:0">
+                <div style="font-weight:500; color:var(--slate-900)">${escapeHtml(p.guru?.nama || '—')}</div>
+                <div style="font-size:0.75rem; color:var(--slate-500)">
+                  ${p.guru?.mapel ? escapeHtml(p.guru.mapel) : '—'}${p.guru?.kelas ? ' · Kelas ' + escapeHtml(p.guru.kelas) : ''}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            ${tipeInfo ? `<span class="badge ${tipeInfo.cls}">${tipeInfo.label}</span>`
+              : '<span style="font-size:0.75rem; color:var(--slate-400)">Belum dinilai</span>'}
+          </td>
+          <td style="font-size:0.875rem">
+            ${p.pendekatan
+              ? `<div style="font-weight:500; color:var(--slate-900)">${p.pendekatan.replace(/_/g,'-').replace(/\b\w/g,c=>c.toUpperCase())}</div>`
+              : '<span style="color:var(--slate-400); font-size:0.75rem">—</span>'}
+          </td>
+          <td style="font-size:0.875rem">${p.waktu_rencana ? formatTanggal(p.waktu_rencana) : '<span style="color:var(--slate-400)">Belum dijadwalkan</span>'}</td>
+          <td style="text-align:center">${statusBadge}</td>
+          <td style="text-align:right; white-space:nowrap">
+            ${!sup
+              ? `<a href="/sispa-v2/ks/pelaksanaan.html?guru=${p.guru_id}" class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.6rem">
+                  ${icon('play-circle', 'w-3.5 h-3.5')}
+                  <span>Mulai</span>
+                </a>`
+              : `<a href="/sispa-v2/ks/pelaksanaan.html?id=${sup.id}" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem">
+                  ${icon('eye', 'w-3.5 h-3.5')}
+                  <span>Lihat</span>
+                </a>`}
+            <button class="icon-btn" data-edit="${p.id}" title="Edit Jadwal">${icon('pencil', 'w-4 h-4')}</button>
+            <button class="icon-btn" style="color:var(--danger)" data-del="${p.id}" title="Hapus dari Program">${icon('trash-2', 'w-4 h-4')}</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.edit)));
+    tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => doDelete(b.dataset.del)));
+    refreshIcons();
+  }
+
+  // ===== TAMBAH KE PROGRAM =====
+  document.getElementById('btnAdd').addEventListener('click', openAddModal);
+
+  async function openAddModal() {
+    const kandidat = await ProgramAPI.kandidatGuru(user.npsn, periode);
+    if (kandidat.length === 0) {
+      return showToast('Semua guru sudah masuk program periode ini', 'info');
+    }
+
+    openModal({
+      title: 'Tambah ke Program Supervisi',
+      maxWidth: '560px',
+      body: `
+        <div style="display:flex; flex-direction:column; gap:1rem">
+          <div style="padding:0.75rem; border-radius:8px; background:var(--brand-50); border:1px solid var(--brand-100); font-size:0.75rem; color:var(--brand-900)">
+            Periode: <strong>${escapeHtml(periode)}</strong>
+          </div>
+
+          <div>
+            <label class="label" for="fGuruProgram">Guru <span style="color:var(--danger)">*</span></label>
+            <select id="fGuruProgram" class="select" required>
+              <option value="">— Pilih Guru —</option>
+              ${kandidat.map(g => `<option value="${g.id}">${escapeHtml(g.nama)}${g.mapel ? ' · ' + escapeHtml(g.mapel) : ''}</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label class="label" for="fWaktuRencana">Waktu Rencana (opsional)</label>
+            <input type="date" id="fWaktuRencana" class="input" />
+          </div>
+
+          <div id="infoTipeBox" style="display:none; padding:0.875rem; border-radius:8px; border:1px solid var(--brand-200); background:var(--brand-50)">
+            <div style="font-size:0.75rem; color:var(--brand-700); text-transform:uppercase; font-weight:600">Rekomendasi Pendekatan</div>
+            <div id="infoTipeContent" style="font-size:0.875rem; color:var(--slate-800); margin-top:0.35rem">—</div>
+          </div>
+
+          <div id="infoNoTipeBox" style="display:none; padding:0.75rem; border-radius:8px; background:#fffbeb; border:1px solid #fde68a; font-size:0.8rem; color:#92400e">
+            ⚠️ Guru ini belum dinilai tipe. Sebaiknya nilai dulu di menu <strong>Profil Tipe Guru</strong> agar pendekatan yang dipilih sesuai.
+          </div>
+        </div>`,
+      footer: `
+        <button class="btn btn-secondary" data-close>Batal</button>
+        <button class="btn btn-primary" id="btnSaveProgram">
+          ${icon('save', 'w-4 h-4')}<span>Simpan</span>
+        </button>`
+    });
+
+    // Ambil semua tipe guru yang ada
+    const allTipe = await ProfilTipeAPI.listByGuruIds(kandidat.map(g => g.id));
+    const tipeMapLocal = {};
+    allTipe.forEach(t => {
+      const ex = tipeMapLocal[t.guru_id];
+      if (!ex || new Date(t.created_at) > new Date(ex.created_at)) tipeMapLocal[t.guru_id] = t;
+    });
+
+    const labelMap = {
+      dropout: 'Dropout (Kuadran I)',
+      unfocused_worker: 'Unfocused Worker (Kuadran II)',
+      analytical_observer: 'Analytical Observer (Kuadran III)',
+      professional: 'Professional (Kuadran IV)'
+    };
+
+    document.getElementById('fGuruProgram').addEventListener('change', (e) => {
+      const id = e.target.value;
+      const infoBox = document.getElementById('infoTipeBox');
+      const noTipeBox = document.getElementById('infoNoTipeBox');
+      const content = document.getElementById('infoTipeContent');
+
+      if (!id) { infoBox.style.display = 'none'; noTipeBox.style.display = 'none'; return; }
+
+      const t = tipeMapLocal[id];
+      if (t) {
+        const mapping = ProfilTipeAPI.hitungTipe(t.level_abstraksi, t.level_komitmen);
+        content.innerHTML = `
+          <div style="font-weight:600">${labelMap[t.tipe] || t.tipe}</div>
+          <div style="margin-top:0.25rem">
+            <strong>${mapping.pendekatan_label}</strong> · teknik <em>${mapping.teknik}</em>
+          </div>
+          <div style="font-size:0.75rem; color:var(--slate-600); margin-top:0.25rem">
+            ${mapping.deskripsi}
+          </div>`;
+        infoBox.style.display = 'block';
+        noTipeBox.style.display = 'none';
+      } else {
+        infoBox.style.display = 'none';
+        noTipeBox.style.display = 'block';
+      }
+    });
+
+    document.getElementById('btnSaveProgram').addEventListener('click', async () => {
+      const guruId = document.getElementById('fGuruProgram').value;
+      const waktu = document.getElementById('fWaktuRencana').value;
+      if (!guruId) return showToast('Guru wajib dipilih', 'error');
+
+      const t = tipeMapLocal[guruId];
+      const payload = {
+        npsn_sekolah: user.npsn,
+        periode,
+        guru_id: guruId,
+        waktu_rencana: waktu || null,
+        level_abstraksi: t ? t.level_abstraksi : null,
+        level_komitmen: t ? t.level_komitmen : null,
+        tipe: t ? t.tipe : null,
+        pendekatan: t ? t.pendekatan_rekomendasi : null
+      };
+
+      const btn = document.getElementById('btnSaveProgram');
+      btn.disabled = true;
+      btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+      refreshIcons();
+
+      try {
+        await ProgramAPI.upsert(payload);
+        closeModal();
+        showToast('Ditambahkan ke program', 'success');
+        await loadData();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan</span>`;
+        refreshIcons();
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // ===== EDIT JADWAL =====
+  function openEdit(id) {
+    const p = programList.find(x => x.id === id);
+    if (!p) return;
+
+    openModal({
+      title: 'Edit Jadwal Rencana',
+      maxWidth: '480px',
+      body: `
+        <div>
+          <label class="label">Guru</label>
+          <input type="text" class="input" value="${escapeHtml(p.guru?.nama || '—')}" disabled />
+        </div>
+        <div style="margin-top:1rem">
+          <label class="label" for="eWaktu">Waktu Rencana</label>
+          <input type="date" id="eWaktu" class="input" value="${p.waktu_rencana || ''}" />
+        </div>`,
+      footer: `
+        <button class="btn btn-secondary" data-close>Batal</button>
+        <button class="btn btn-primary" id="btnSaveEdit">
+          ${icon('save', 'w-4 h-4')}<span>Simpan</span>
+        </button>`
+    });
+
+    document.getElementById('btnSaveEdit').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSaveEdit');
+      btn.disabled = true;
+      btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+      refreshIcons();
+      try {
+        const record = { ...p, waktu_rencana: document.getElementById('eWaktu').value || null };
+        await ProgramAPI.upsert(record);
+        closeModal();
+        showToast('Jadwal diperbarui', 'success');
+        await loadData();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan</span>`;
+        refreshIcons();
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  async function doDelete(id) {
+    const p = programList.find(x => x.id === id);
+    if (!p) return;
+    const ok = await confirmAction('Hapus dari program?', `${p.guru?.nama || 'Guru'} akan dihapus dari rencana periode ini.`, {
+      confirmText: 'Ya, hapus', danger: true
+    });
+    if (!ok) return;
+
+    await withLoading('Menghapus...', async () => {
+      try {
+        await ProgramAPI.remove(id);
+        showToast('Dihapus dari program', 'success');
+        await loadData();
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+  document.getElementById('periodeInput').addEventListener('change', (e) => {
+    periode = e.target.value.trim();
+    if (periode) loadData();
+  });
+</script>
+</body>
+</html>
