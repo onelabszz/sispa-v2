@@ -52,21 +52,32 @@
 <script src="/sispa-v2/assets/js/app.js"></script>
 <script src="/sispa-v2/assets/js/api/supervisi.js"></script>
 <script>
-  let user = null;
-  let filterStatus = '';
+let user = null;
+let filterStatus = '';
 
-  initPage('ks', 'pelaksanaan', async (u) => {
-    user = u;
-    await loadData();
-  });
+// Handle ?guru= (defense in depth) — redirect ke form
+const urlParams = new URLSearchParams(window.location.search);
+const guruParam = urlParams.get('guru');
+
+initPage('ks', 'pelaksanaan', async (u) => {
+  user = u;
+
+  if (guruParam && !urlParams.get('id')) {
+    window.location.href = '/sispa-v2/ks/supervisi-form.html?guru=' + guruParam;
+    return;
+  }
+
+  await loadData();
+});
 
   async function loadData() {
     await withLoading('Memuat sesi supervisi...', async () => {
       try {
         const list = await SupervisiAPI.list({
-          npsn_sekolah: user.npsn,
-          status: filterStatus || undefined
-        });
+  npsn_sekolah: user.npsn,
+  status: filterStatus || undefined,
+  status_not_in: filterStatus ? undefined : ['draft', 'selesai']
+});
         renderStats(list);
         renderList(list);
       } catch (err) {
