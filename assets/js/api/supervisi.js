@@ -1,8 +1,6 @@
 /**
  * SISPA v2 — API Supervisi (Header + 3 Tahap)
- * 
- * v1.1 — Tambah: savePra, saveObservasi, savePasca, selesaikan, unwrap
- *        Supaya form 3 tahap TIDAK bypass API layer (fix bug #2)
+ * v1.1 — unwrap join, savePra/saveObservasi/savePasca/selesaikan
  */
 
 const SupervisiAPI = (function () {
@@ -13,7 +11,6 @@ const SupervisiAPI = (function () {
     return v;
   }
 
-  // ===== LIST =====
   async function list(opts = {}) {
     let query = sb
       .from('supervisi')
@@ -23,6 +20,7 @@ const SupervisiAPI = (function () {
     if (opts.guru_id) query = query.eq('guru_id', opts.guru_id);
     if (opts.status) query = query.eq('status', opts.status);
     if (opts.pendekatan) query = query.eq('pendekatan', opts.pendekatan);
+    if (opts.status_not_in) query = query.not('status', 'in', `(${opts.status_not_in.join(',')})`);
 
     query = query.order('created_at', { ascending: false });
 
@@ -36,7 +34,6 @@ const SupervisiAPI = (function () {
     }));
   }
 
-  // ===== GET (single) =====
   async function get(id) {
     const { data, error } = await sb
       .from('supervisi')
@@ -59,7 +56,7 @@ const SupervisiAPI = (function () {
       ...data,
       nama_guru: data.guru?.nama || null,
       nama_sekolah: data.sekolah?.nama || null,
-      // Fix bug #1: unwrap
+      // Fix bug #1: unwrap otomatis
       pra_observasi: unwrap(data.pra_observasi),
       observasi: unwrap(data.observasi),
       pasca_observasi: unwrap(data.pasca_observasi),
@@ -67,7 +64,6 @@ const SupervisiAPI = (function () {
     };
   }
 
-  // ===== CREATE (draft baru) =====
   async function create(payload) {
     if (!payload.guru_id) throw new Error('Guru wajib diisi');
     if (!payload.npsn_sekolah) throw new Error('Sekolah wajib diisi');
@@ -99,7 +95,6 @@ const SupervisiAPI = (function () {
     return data;
   }
 
-  // ===== UPDATE (header) =====
   async function update(id, payload) {
     const changes = {};
     const allowed = ['pendekatan', 'teknik', 'status', 'aspek_pm',
@@ -125,9 +120,8 @@ const SupervisiAPI = (function () {
     return true;
   }
 
-  // ===== UPSERT HELPER (internal) =====
+  // ===== UPSERT HELPER (internal) — fix bug #2 =====
   async function upsertChild(table, supervisiId, payload) {
-    // Cek existing
     const { data: existing } = await sb
       .from(table)
       .select('id')
@@ -154,25 +148,21 @@ const SupervisiAPI = (function () {
     return data;
   }
 
-  // ===== SAVE PRA-OBSERVASI (tahap 1) =====
   async function savePra(supervisiId, payload) {
     if (!supervisiId) throw new Error('supervisi_id wajib diisi');
     return upsertChild('pra_observasi', supervisiId, payload);
   }
 
-  // ===== SAVE OBSERVASI (tahap 2) =====
   async function saveObservasi(supervisiId, payload) {
     if (!supervisiId) throw new Error('supervisi_id wajib diisi');
     return upsertChild('observasi', supervisiId, payload);
   }
 
-  // ===== SAVE PASCA-OBSERVASI (tahap 3) =====
   async function savePasca(supervisiId, payload) {
     if (!supervisiId) throw new Error('supervisi_id wajib diisi');
     return upsertChild('pasca_observasi', supervisiId, payload);
   }
 
-  // ===== SELESAIKAN SUPERVISI =====
   async function selesaikan(supervisiId) {
     return update(supervisiId, {
       status: 'selesai',
@@ -180,7 +170,6 @@ const SupervisiAPI = (function () {
     });
   }
 
-  // ===== STATISTIK =====
   async function stats(npsnSekolah) {
     const { data, error } = await sb
       .from('supervisi')
