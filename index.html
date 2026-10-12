@@ -1,66 +1,198 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SISPA v2 — Login</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+<body>
 
-<div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-  <h1 class="text-2xl font-bold text-indigo-700 mb-2">SISPA v2</h1>
-  <p class="text-sm text-slate-500 mb-6">Sistem Informasi Supervisi Pendidikan Akademik</p>
+<div class="min-h-screen flex">
 
-  <form id="loginForm" class="space-y-4">
-    <div>
-      <label class="block text-sm font-medium mb-1">Email</label>
-      <input type="email" id="email" required 
-             class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
+  <!-- Kiri: Branding -->
+  <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white p-12 flex-col justify-between relative overflow-hidden">
+    <div class="flex items-center gap-3 relative z-10">
+      <div class="w-11 h-11 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center border border-white/20">
+        <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <div class="font-bold text-lg">SISPA</div>
+        <div class="text-xs text-indigo-200">Sistem Informasi Supervisi Pendidikan Akademik</div>
+      </div>
     </div>
-    <div>
-      <label class="block text-sm font-medium mb-1">Password</label>
-      <input type="password" id="password" required
-             class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
+
+    <div class="relative z-10 max-w-md">
+      <h1 class="text-3xl font-bold leading-tight mb-4">
+        Supervisi akademik yang reflektif dan bermakna.
+      </h1>
+      <p class="text-indigo-100 text-sm leading-relaxed">
+        Dukung kepala sekolah dan pengawas dalam membina guru melalui observasi
+        pembelajaran mendalam dan percakapan coaching-mentoring yang terarah.
+      </p>
     </div>
-    <div id="errorMsg" class="hidden text-sm text-red-600 bg-red-50 p-2 rounded"></div>
-    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-semibold">
-      Masuk
-    </button>
-  </form>
+
+    <div class="relative z-10 text-xs text-indigo-200">
+      © <span id="year"></span> SISPA · Tahun 2026
+    </div>
+
+    <div class="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-white/5"></div>
+    <div class="absolute -right-10 top-20 w-64 h-64 rounded-full bg-white/5"></div>
+  </div>
+
+  <!-- Kanan: Form -->
+  <div class="flex-1 flex items-center justify-center p-6 lg:p-12">
+    <div class="w-full max-w-md">
+
+      <div class="lg:hidden flex items-center gap-3 mb-8">
+        <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-xl flex items-center justify-center shadow">
+          <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="font-bold text-slate-900">SISPA</div>
+          <div class="text-xs text-slate-500">Supervisi Pendidikan Akademik</div>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-bold text-slate-900 mb-1">Selamat datang</h2>
+      <p class="text-sm text-slate-500 mb-8">Masuk dengan akun Anda.</p>
+
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="label" for="email">Email</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <i data-lucide="mail" class="w-4 h-4"></i>
+            </span>
+            <input type="email" id="email" required autocomplete="username"
+                   class="input" style="padding-left: 2.4rem"
+                   placeholder="nama@sekolah.sch.id" />
+          </div>
+        </div>
+
+        <div>
+          <label class="label" for="password">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+            </span>
+            <input type="password" id="password" required autocomplete="current-password"
+                   class="input" style="padding-left: 2.4rem; padding-right: 2.4rem" />
+            <button type="button" id="togglePwd"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="errorMsg" class="hidden text-sm text-red-700 bg-red-50 border border-red-200 p-3 rounded-lg flex items-start gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+          <span></span>
+        </div>
+
+        <button type="submit" id="loginBtn" class="btn btn-primary w-full">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Masuk</span>
+        </button>
+      </form>
+
+      <div class="mt-6 text-center text-sm">
+        <a href="./panduan.html" class="text-indigo-600 hover:underline font-medium">
+          📖 Baca Panduan Penggunaan
+        </a>
+      </div>
+
+      <p class="text-xs text-slate-400 text-center mt-6">
+        Mengalami kendala login? Hubungi administrator aplikasi.
+      </p>
+
+    </div>
+  </div>
 </div>
 
-<script src="./assets/js/config.js"></script>
-<script src="./assets/js/supabase.js"></script>
-<script src="./assets/js/auth.js"></script>
-<script>
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = e.target.querySelector('button');
-  const errBox = document.getElementById('errorMsg');
-  errBox.classList.add('hidden');
-  btn.disabled = true;
-  btn.textContent = 'Memproses...';
+<!-- ============ SCRIPTS (URUTAN WAJIB) ============ -->
 
-  try {
-    const data = await login(
-      document.getElementById('email').value,
-      document.getElementById('password').value
-    );
-    
-    // Redirect berdasarkan role
-    const profile = await getCurrentUser();
-    if (profile.role === 'admin') window.location.href = '/sispa-v2/admin/dashboard.html';
-    else if (profile.role === 'pengawas') window.location.href = '/sispa-v2/pengawas/dashboard.html';
-    else window.location.href = '/sispa-v2/ks/dashboard.html';
-  } catch (err) {
-    errBox.textContent = err.message;
-    errBox.classList.remove('hidden');
-    btn.disabled = false;
-    btn.textContent = 'Masuk';
-  }
-});
+<!-- 1. Supabase CDN — harus paling awal -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- 2. Config -->
+<script src="./assets/js/config.js"></script>
+
+<!-- 3. Supabase client (butuh CDN + config) -->
+<script src="./assets/js/supabase.js"></script>
+
+<!-- 4. Auth helpers (butuh sb) -->
+<script src="./assets/js/auth.js"></script>
+
+<!-- 5. UI helpers -->
+<script src="./assets/js/ui.js"></script>
+
+<!-- 6. Script inline halaman -->
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  refreshIcons();
+
+  // Redirect jika sudah login
+  (async function () {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        if (user.role === 'admin') window.location.href = '/sispa-v2/admin/dashboard.html';
+        else if (user.role === 'pengawas') window.location.href = '/sispa-v2/pengawas/dashboard.html';
+        else if (user.role === 'guru') window.location.href = '/sispa-v2/guru/dashboard.html';
+        else window.location.href = '/sispa-v2/ks/dashboard.html';
+      }
+    } catch (e) {
+      console.warn('[SISPA] Cek login gagal:', e);
+    }
+  })();
+
+  // Toggle password
+  const pwdInput = document.getElementById('password');
+  document.getElementById('togglePwd').addEventListener('click', function () {
+    const isPwd = pwdInput.type === 'password';
+    pwdInput.type = isPwd ? 'text' : 'password';
+    this.innerHTML = `<i data-lucide="${isPwd ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
+    refreshIcons();
+  });
+
+  // Submit login
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const errBox = document.getElementById('errorMsg');
+    errBox.classList.add('hidden');
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Memproses...</span>`;
+    refreshIcons();
+
+    try {
+      await login(email, password);
+
+      // Ambil profil untuk redirect
+      const user = await getCurrentUser();
+      if (!user) throw new Error('Profil tidak ditemukan setelah login');
+
+      if (user.role === 'admin') window.location.href = '/sispa-v2/admin/dashboard.html';
+      else if (user.role === 'pengawas') window.location.href = '/sispa-v2/pengawas/dashboard.html';
+      else if (user.role === 'guru') window.location.href = '/sispa-v2/guru/dashboard.html';
+      else window.location.href = '/sispa-v2/ks/dashboard.html';
+
+    } catch (err) {
+      errBox.querySelector('span').textContent = err.message || 'Login gagal';
+      errBox.classList.remove('hidden');
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>Masuk</span>`;
+      refreshIcons();
+    }
+  });
 </script>
 </body>
 </html>
