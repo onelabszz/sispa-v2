@@ -125,7 +125,64 @@ const UsersAPI = (function () {
     return update(id, { status: 'aktif' });
   }
 
-  return { list, stats, update, create, resetPassword, remove, softDelete, activate };
+  /**
+   * Update profil user yang sedang login (self-service).
+   * Tidak bisa mengubah role, status, atau npsn dari sini.
+   */
+  async function updateProfile(payload) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Sesi tidak valid');
+
+    const allowed = ['nama', 'nip', 'pangkat_golongan', 'jabatan',
+                     'status_kepegawaian', 'jenis_kelamin', 'no_hp'];
+    const changes = {};
+    allowed.forEach(k => {
+      if (payload[k] !== undefined) changes[k] = payload[k];
+    });
+
+    const { data, error } = await sb
+      .from('profiles')
+      .update(changes)
+      .eq('id', session.user.id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Invalidate cache user
+    window._cachedUser = null;
+
+    return data;
+  }
+
+  /**
+   * Ganti password user yang sedang login.
+   * Memverifikasi password lama terlebih dahulu.
+   */
+  async function changePassword(oldPassword, newPassword) {
+    if (!oldPassword) throw new Error('Password lama wajib diisi');
+    if (!newPassword || newPassword.length < 6) throw new Error('Password baru minimal 6 karakter');
+    if (oldPassword === newPassword) throw new Error('Password baru harus berbeda dari password lama');
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Sesi tidak valid');
+
+    // Verifikasi password lama dengan signIn ulang
+    const email = session.user.email;
+    const { error: signInError } = await sb.auth.signInWithPassword({
+      email: email,
+      password: oldPassword
+    });
+    if (signInError) throw new Error('Password lama salah');
+
+    // Update password
+    const { error } = await sb.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
+
+    return { changed: true };
+  }
+
+  return { list, stats, update, create, resetPassword, remove, softDelete, activate, updateProfile, changePassword };
 })();
 
 window.UsersAPI = UsersAPI;
