@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Pelaksanaan Supervisi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Pelaksanaan Supervisi</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Sesi supervisi 3 tahap: Pra-Observasi · Observasi · Pasca-Observasi</p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <select id="filterStatus" class="select" style="width:auto; min-width:150px">
+      <option value="">Semua Status</option>
+      <option value="draft">Draft</option>
+      <option value="pra_observasi">Pra-Observasi</option>
+      <option value="observasi">Observasi</option>
+      <option value="pasca_observasi">Pasca-Observasi</option>
+      <option value="selesai">Selesai</option>
+    </select>
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+  </div>
+</div>
+
+<div id="miniStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:1rem; margin-bottom:1.5rem"></div>
+
+<div id="listContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:1rem"></div>
+
+<div id="emptyState" class="hidden card empty-state">
+  <div class="empty-state-icon"><i data-lucide="clipboard-check" class="w-6 h-6"></i></div>
+  <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada sesi supervisi</h3>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0 0 1rem">Buka menu Program Supervisi untuk memulai</p>
+  <a href="/sispa-v2/ks/program.html" class="btn btn-primary">
+    <i data-lucide="clipboard-list" class="w-4 h-4"></i><span>Ke Program Supervisi</span>
+  </a>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/supervisi.js"></script>
+<script>
+  let user = null;
+  let filterStatus = '';
+
+  initPage('ks', 'pelaksanaan', async (u) => {
+    user = u;
+    await loadData();
+  });
+
+  async function loadData() {
+    await withLoading('Memuat sesi supervisi...', async () => {
+      try {
+        const list = await SupervisiAPI.list({
+          npsn_sekolah: user.npsn,
+          status: filterStatus || undefined
+        });
+        renderStats(list);
+        renderList(list);
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderStats(list) {
+    const total = list.length;
+    const draft = list.filter(s => s.status === 'draft').length;
+    const berjalan = list.filter(s => !['draft','selesai'].includes(s.status)).length;
+    const selesai = list.filter(s => s.status === 'selesai').length;
+
+    document.getElementById('miniStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Total</div><div style="font-size:1.25rem; font-weight:700">${total}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#f1f5f9; color:#475569"><i data-lucide="file-edit" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Draft</div><div style="font-size:1.25rem; font-weight:700">${draft}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="play-circle" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Berjalan</div><div style="font-size:1.25rem; font-weight:700">${berjalan}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Selesai</div><div style="font-size:1.25rem; font-weight:700">${selesai}</div></div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function renderList(list) {
+    const container = document.getElementById('listContainer');
+    const empty = document.getElementById('emptyState');
+
+    if (!list.length) {
+      container.innerHTML = '';
+      empty.classList.remove('hidden');
+      refreshIcons();
+      return;
+    }
+    empty.classList.add('hidden');
+
+    const statusInfo = (s) => ({
+      draft: { label: 'Draft', cls: 'badge-neutral', color: 'var(--slate-500)' },
+      pra_observasi: { label: 'Pra-Observasi', cls: 'badge-info', color: '#1e40af' },
+      observasi: { label: 'Observasi', cls: 'badge-warning', color: '#92400e' },
+      pasca_observasi: { label: 'Pasca-Observasi', cls: 'badge-warning', color: '#92400e' },
+      selesai: { label: 'Selesai', cls: 'badge-success', color: '#166534' }
+    }[s] || { label: s, cls: 'badge-neutral', color: 'var(--slate-500)' });
+
+    const pendekatanLabel = (p) => p
+      ? p.replace(/_/g,'-').replace(/\b\w/g, c => c.toUpperCase())
+      : '—';
+
+    container.innerHTML = list.map(s => {
+      const st = statusInfo(s.status);
+      // Progress tahap
+      const step = {
+        draft: 0,
+        pra_observasi: 1,
+        observasi: 2,
+        pasca_observasi: 3,
+        selesai: 4
+      }[s.status] || 0;
+
+      return `
+        <div class="card" style="padding:1.25rem; display:flex; flex-direction:column; gap:0.75rem">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem">
+            <div style="display:flex; align-items:center; gap:0.75rem; min-width:0">
+              <div style="width:40px; height:40px; border-radius:50%; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; flex-shrink:0">
+                ${escapeHtml((s.nama_guru || 'G').charAt(0).toUpperCase())}
+              </div>
+              <div style="min-width:0">
+                <div style="font-weight:600; color:var(--slate-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${escapeHtml(s.nama_guru || '—')}</div>
+                <div style="font-size:0.75rem; color:var(--slate-500)">${escapeHtml(s.guru?.mapel || '—')}${s.guru?.kelas ? ' · Kelas ' + escapeHtml(s.guru.kelas) : ''}</div>
+              </div>
+            </div>
+            <span class="badge ${st.cls}">${st.label}</span>
+          </div>
+
+          <div style="font-size:0.75rem; color:var(--slate-600)">
+            <div><strong>Pendekatan:</strong> ${pendekatanLabel(s.pendekatan)}</div>
+            ${s.teknik ? `<div><strong>Teknik:</strong> ${s.teknik}</div>` : ''}
+            ${s.tanggal_mulai ? `<div><strong>Mulai:</strong> ${formatTanggal(s.tanggal_mulai)}</div>` : ''}
+          </div>
+
+          <!-- Progress 3 tahap -->
+          <div style="display:flex; align-items:center; gap:0.35rem; margin-top:0.25rem">
+            <div style="flex:1; height:6px; border-radius:3px; background:${step >= 1 ? 'var(--brand-500)' : 'var(--slate-200)'}"></div>
+            <div style="flex:1; height:6px; border-radius:3px; background:${step >= 2 ? 'var(--brand-500)' : 'var(--slate-200)'}"></div>
+            <div style="flex:1; height:6px; border-radius:3px; background:${step >= 3 ? 'var(--brand-500)' : 'var(--slate-200)'}"></div>
+          </div>
+          <div style="font-size:0.7rem; color:var(--slate-500); text-align:center">
+            ${step === 0 ? 'Belum dimulai' :
+              step === 1 ? 'Tahap Pra-Observasi' :
+              step === 2 ? 'Tahap Observasi' :
+              step === 3 ? 'Tahap Pasca-Observasi' : 'Semua tahap selesai'}
+          </div>
+
+          <a href="/sispa-v2/ks/supervisi-form.html?id=${s.id}" class="btn btn-primary" style="justify-content:center; margin-top:0.25rem">
+            ${icon(s.status === 'selesai' ? 'eye' : 'play-circle', 'w-4 h-4')}
+            <span>${s.status === 'selesai' ? 'Lihat Detail' : (s.status === 'draft' ? 'Mulai Pra-Observasi' : 'Lanjutkan')}</span>
+          </a>
+        </div>`;
+    }).join('');
+
+    refreshIcons();
+  }
+
+  document.getElementById('filterStatus').addEventListener('change', (e) => {
+    filterStatus = e.target.value;
+    loadData();
+  });
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+</script>
+</body>
+</html>
