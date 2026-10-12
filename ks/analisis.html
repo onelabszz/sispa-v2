@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Analisis PM & KKA</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .chart-card {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
+  }
+  .chart-card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--slate-900);
+    margin: 0 0 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .chart-card-sub {
+    font-size: 0.75rem;
+    color: var(--slate-500);
+    margin: 0 0 1rem;
+  }
+  .chart-wrap {
+    flex: 1;
+    position: relative;
+    min-height: 220px;
+  }
+</style>
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Analisis PM & KKA</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Visualisasi penerapan Pembelajaran Mendalam & Koding/Kecerdasan Artifisial</p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <select id="filterPeriode" class="select" style="width:auto; min-width:200px">
+      <option value="">Semua Waktu</option>
+      <option value="3bulan">3 Bulan Terakhir</option>
+      <option value="6bulan">6 Bulan Terakhir</option>
+      <option value="1tahun">1 Tahun Terakhir</option>
+    </select>
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div id="kpiGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin-bottom:1.5rem"></div>
+
+<!-- Charts Row 1: Prinsip & Pengalaman -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.25rem; margin-bottom:1.25rem">
+  <div class="chart-card">
+    <div class="chart-card-title">
+      <i data-lucide="sparkles" class="w-4 h-4" style="color:var(--brand-600)"></i>
+      Prinsip Pembelajaran Mendalam
+    </div>
+    <div class="chart-card-sub">Frekuensi prinsip yang diterapkan dalam sesi supervisi</div>
+    <div class="chart-wrap"><canvas id="chartPrinsip"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-title">
+      <i data-lucide="graduation-cap" class="w-4 h-4" style="color:var(--brand-600)"></i>
+      Pengalaman Belajar
+    </div>
+    <div class="chart-card-sub">Frekuensi pengalaman belajar yang difasilitasi</div>
+    <div class="chart-wrap"><canvas id="chartPengalaman"></canvas></div>
+  </div>
+</div>
+
+<!-- Charts Row 2: DPL & KKA -->
+<div style="display:grid; grid-template-columns:2fr 1fr; gap:1.25rem; margin-bottom:1.25rem" id="gridDplKka">
+  <div class="chart-card">
+    <div class="chart-card-title">
+      <i data-lucide="layers" class="w-4 h-4" style="color:var(--brand-600)"></i>
+      8 Dimensi Profil Lulusan
+    </div>
+    <div class="chart-card-sub">Berapa kali masing-masing DPL ditargetkan sebagai tujuan pembelajaran</div>
+    <div class="chart-wrap" style="min-height:320px"><canvas id="chartDpl"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-title">
+      <i data-lucide="code" class="w-4 h-4" style="color:var(--brand-600)"></i>
+      Integrasi Koding & AI
+    </div>
+    <div class="chart-card-sub">Distribusi sesi dengan integrasi KKA</div>
+    <div class="chart-wrap" style="min-height:320px"><canvas id="chartKka"></canvas></div>
+  </div>
+</div>
+
+<!-- Chart Row 3: Tren -->
+<div class="chart-card" style="margin-bottom:1.25rem">
+  <div class="chart-card-title">
+    <i data-lucide="trending-up" class="w-4 h-4" style="color:var(--brand-600)"></i>
+    Tren Supervisi per Bulan
+  </div>
+  <div class="chart-card-sub">Jumlah sesi supervisi yang dimulai setiap bulan (12 bulan terakhir)</div>
+  <div class="chart-wrap" style="min-height:260px"><canvas id="chartTren"></canvas></div>
+</div>
+
+<!-- Insight / Rekomendasi -->
+<div id="insightBox" class="card" style="margin-bottom:3rem; display:none">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="lightbulb" class="w-4 h-4" style="color:var(--warning)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Insight & Rekomendasi</h2>
+    </div>
+  </div>
+  <div id="insightList" class="card-body" style="display:flex; flex-direction:column; gap:0.75rem"></div>
+</div>
+
+<!-- Empty State -->
+<div id="emptyState" class="hidden card empty-state" style="margin-top:2rem">
+  <div class="empty-state-icon"><i data-lucide="bar-chart-3" class="w-6 h-6"></i></div>
+  <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada data untuk dianalisis</h3>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0 0 1rem">Lakukan supervisi terlebih dahulu agar grafik analitik terisi</p>
+  <a href="/sispa-v2/ks/program.html" class="btn btn-primary">
+    <i data-lucide="clipboard-list" class="w-4 h-4"></i><span>Ke Program Supervisi</span>
+  </a>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script>
+  let user = null;
+  let filterPeriode = '';
+  let rawSupervisi = [];
+
+  // Simpan instance chart agar bisa destroy saat refresh
+  const charts = {};
+
+  const DPL_LABELS = [
+    'DPL 1 — Keimanan & Ketakwaan',
+    'DPL 2 — Kewargaan',
+    'DPL 3 — Penalaran Kritis',
+    'DPL 4 — Kreativitas',
+    'DPL 5 — Kolaborasi',
+    'DPL 6 — Kemandirian',
+    'DPL 7 — Kesehatan',
+    'DPL 8 — Komunikasi'
+  ];
+
+  const PRINSIP_KEYS = ['berkesadaran', 'bermakna', 'menggembirakan'];
+  const PRINSIP_LABELS = ['Berkesadaran', 'Bermakna', 'Menggembirakan'];
+
+  const PENGALAMAN_KEYS = ['memahami', 'mengaplikasi', 'merefleksi'];
+  const PENGALAMAN_LABELS = ['Memahami', 'Mengaplikasi', 'Merefleksi'];
+
+  initPage('ks', 'analisis', async (u) => {
+    user = u;
+    // Set default filter: 1 tahun terakhir
+    document.getElementById('filterPeriode').value = '1tahun';
+    filterPeriode = '1tahun';
+    await loadData();
+  });
+
+  function getTanggalBatas() {
+    if (!filterPeriode) return null;
+    const now = new Date();
+    const d = new Date(now);
+    if (filterPeriode === '3bulan') d.setMonth(d.getMonth() - 3);
+    else if (filterPeriode === '6bulan') d.setMonth(d.getMonth() - 6);
+    else if (filterPeriode === '1tahun') d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  async function loadData() {
+    await withLoading('Memuat data analitik...', async () => {
+      try {
+        // Query supervisi dengan semua data terkait
+        let query = sb
+          .from('supervisi')
+          .select(`
+            id, status, pendekatan, tanggal_mulai, tanggal_selesai, created_at,
+            aspek_pm, pengalaman_belajar, dpl_target, kka_fokus,
+            observasi(catatan_kka)
+          `)
+          .eq('npsn_sekolah', user.npsn);
+
+        const batas = getTanggalBatas();
+        if (batas) query = query.gte('created_at', batas);
+
+        query = query.order('created_at', { ascending: true });
+
+        const { data, error } = await query;
+        if (error) throw new Error(error.message);
+
+        rawSupervisi = data || [];
+
+        if (rawSupervisi.length === 0) {
+          showEmptyState(true);
+          return;
+        }
+        showEmptyState(false);
+
+        renderKPI();
+        renderChartPrinsip();
+        renderChartPengalaman();
+        renderChartDpl();
+        renderChartKka();
+        renderChartTren();
+        renderInsight();
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal memuat: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function showEmptyState(show) {
+    document.getElementById('emptyState').classList.toggle('hidden', !show);
+    ['kpiGrid', 'gridDplKka'].forEach(id => {
+      document.getElementById(id).style.display = show ? 'none' : '';
+    });
+    document.querySelectorAll('.chart-card').forEach(c => {
+      c.style.display = show ? 'none' : '';
+    });
+    if (show) refreshIcons();
+  }
+
+  // ===== KPI =====
+  function renderKPI() {
+    const total = rawSupervisi.length;
+    const selesai = rawSupervisi.filter(s => s.status === 'selesai').length;
+    const denganKKA = rawSupervisi.filter(s => {
+      const obs = Array.isArray(s.observasi) ? s.observasi[0] : s.observasi;
+      return obs?.catatan_kka && obs.catatan_kka.trim() !== '';
+    }).length;
+    const pctKKA = total > 0 ? Math.round((denganKKA / total) * 100) : 0;
+
+    // Rata-rata prinsip & pengalaman terisi per sesi
+    const totalPrinsip = rawSupervisi.reduce((sum, s) => {
+      const ap = s.aspek_pm || {};
+      return sum + PRINSIP_KEYS.filter(k => ap[k]).length;
+    }, 0);
+    const avgPrinsip = total > 0 ? (totalPrinsip / total).toFixed(1) : 0;
+
+    document.getElementById('kpiGrid').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Total Sesi</div><div style="font-size:1.5rem; font-weight:700">${total}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Selesai</div><div style="font-size:1.5rem; font-weight:700">${selesai}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Rata-rata Prinsip/Sesi</div><div style="font-size:1.5rem; font-weight:700">${avgPrinsip} <span style="font-size:0.85rem; color:var(--slate-400); font-weight:400">/ 3</span></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe; color:#1e40af"><i data-lucide="code" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Dengan KKA</div><div style="font-size:1.5rem; font-weight:700">${denganKKA} <span style="font-size:0.85rem; color:var(--slate-400); font-weight:400">(${pctKKA}%)</span></div></div>
+      </div>`;
+    refreshIcons();
+  }
+
+  // ===== CHART: Prinsip PM =====
+  function renderChartPrinsip() {
+    const counts = PRINSIP_KEYS.map(k =>
+      rawSupervisi.filter(s => (s.aspek_pm || {})[k]).length
+    );
+    const total = rawSupervisi.length;
+
+    destroyChart('chartPrinsip');
+    const ctx = document.getElementById('chartPrinsip').getContext('2d');
+    charts.chartPrinsip = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: PRINSIP_LABELS,
+        datasets: [{
+          label: 'Jumlah sesi',
+          data: counts,
+          backgroundColor: ['#6366f1', '#10b981', '#f59e0b'],
+          borderRadius: 6,
+          maxBarThickness: 60
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const pct = total > 0 ? Math.round((c.parsed.y / total) * 100) : 0;
+                return `${c.parsed.y} sesi (${pct}% dari ${total})`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: '#64748b' },
+            grid: { color: '#e2e8f0' }
+          },
+          x: {
+            ticks: { color: '#334155', font: { weight: '500' } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // ===== CHART: Pengalaman Belajar =====
+  function renderChartPengalaman() {
+    const counts = PENGALAMAN_KEYS.map(k =>
+      rawSupervisi.filter(s => (s.pengalaman_belajar || {})[k]).length
+    );
+    const total = rawSupervisi.length;
+
+    destroyChart('chartPengalaman');
+    const ctx = document.getElementById('chartPengalaman').getContext('2d');
+    charts.chartPengalaman = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: PENGALAMAN_LABELS,
+        datasets: [{
+          label: 'Jumlah sesi',
+          data: counts,
+          backgroundColor: ['#0ea5e9', '#8b5cf6', '#ec4899'],
+          borderRadius: 6,
+          maxBarThickness: 60
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const pct = total > 0 ? Math.round((c.parsed.y / total) * 100) : 0;
+                return `${c.parsed.y} sesi (${pct}% dari ${total})`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: '#64748b' },
+            grid: { color: '#e2e8f0' }
+          },
+          x: {
+            ticks: { color: '#334155', font: { weight: '500' } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // ===== CHART: 8 DPL =====
+  function renderChartDpl() {
+    const counts = [1,2,3,4,5,6,7,8].map(n =>
+      rawSupervisi.filter(s => Array.isArray(s.dpl_target) && s.dpl_target.includes(n)).length
+    );
+
+    destroyChart('chartDpl');
+    const ctx = document.getElementById('chartDpl').getContext('2d');
+    charts.chartDpl = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: DPL_LABELS,
+        datasets: [{
+          label: 'Jumlah sesi',
+          data: counts,
+          backgroundColor: '#6366f1',
+          borderRadius: 6,
+          maxBarThickness: 22
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => `${c.parsed.x} sesi menargetkan ${c.label}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: '#64748b' },
+            grid: { color: '#e2e8f0' }
+          },
+          y: {
+            ticks: { color: '#334155', font: { size: 10 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // ===== CHART: KKA =====
+  function renderChartKka() {
+    let koding = 0, ai = 0, keduanya = 0, tidakAda = 0;
+
+    rawSupervisi.forEach(s => {
+      const obs = Array.isArray(s.observasi) ? s.observasi[0] : s.observasi;
+      const teks = ((obs?.catatan_kka || '') + ' ' + (s.kka_fokus || '')).toLowerCase();
+      const adaKoding = /koding|coding|scratch|python|blockly|computational/.test(teks);
+      const adaAi = /\bai\b|kecerdasan artifisial|artificial intelligence|machine learning|chatgpt|gemini/.test(teks);
+
+      if (adaKoding && adaAi) keduanya++;
+      else if (adaKoding) koding++;
+      else if (adaAi) ai++;
+      else tidakAda++;
+    });
+
+    destroyChart('chartKka');
+    const ctx = document.getElementById('chartKka').getContext('2d');
+    charts.chartKka = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Koding saja', 'AI saja', 'Koding + AI', 'Tidak ada'],
+        datasets: [{
+          data: [koding, ai, keduanya, tidakAda],
+          backgroundColor: ['#0ea5e9', '#8b5cf6', '#10b981', '#e2e8f0'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#334155', font: { size: 11 }, boxWidth: 12, padding: 10 }
+          },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const total = c.dataset.data.reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? Math.round((c.parsed / total) * 100) : 0;
+                return `${c.label}: ${c.parsed} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // ===== CHART: Tren per Bulan (12 bulan terakhir) =====
+  function renderChartTren() {
+    const labels = [];
+    const data = [];
+
+    const now = new Date();
+    const bulanMap = {};
+
+    // Siapkan 12 bulan terakhir
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      bulanMap[key] = 0;
+      labels.push(d.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }));
+    }
+
+    // Isi data
+    rawSupervisi.forEach(s => {
+      const tgl = s.tanggal_mulai || s.created_at;
+      if (!tgl) return;
+      const key = String(tgl).slice(0, 7);
+      if (bulanMap[key] !== undefined) bulanMap[key]++;
+    });
+
+    Object.keys(bulanMap).sort().forEach(k => data.push(bulanMap[k]));
+
+    destroyChart('chartTren');
+    const ctx = document.getElementById('chartTren').getContext('2d');
+    charts.chartTren = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Jumlah Sesi',
+          data,
+          borderColor: '#4f46e5',
+          backgroundColor: 'rgba(79,70,229,0.1)',
+          borderWidth: 2.5,
+          tension: 0.35,
+          fill: true,
+          pointBackgroundColor: '#4f46e5',
+          pointBorderColor: 'white',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => `${c.parsed.y} sesi`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: '#64748b' },
+            grid: { color: '#e2e8f0' }
+          },
+          x: {
+            ticks: { color: '#64748b', font: { size: 10 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // ===== INSIGHT =====
+  function renderInsight() {
+    const total = rawSupervisi.length;
+    if (total === 0) return;
+
+    const insights = [];
+
+    // Prinsip yang paling sering
+    const prinsipCounts = PRINSIP_KEYS.map((k, i) => ({
+      key: k,
+      label: PRINSIP_LABELS[i],
+      count: rawSupervisi.filter(s => (s.aspek_pm || {})[k]).length
+    })).sort((a, b) => b.count - a.count);
+
+    const prinsipUtama = prinsipCounts[0];
+    const prinsipTersedikit = prinsipCounts[prinsipCounts.length - 1];
+    const pctUtama = Math.round((prinsipUtama.count / total) * 100);
+    const pctTersedikit = Math.round((prinsipTersedikit.count / total) * 100);
+
+    if (pctUtama >= 70) {
+      insights.push({
+        type: 'success',
+        icon: 'trending-up',
+        text: `Prinsip <strong>${prinsipUtama.label}</strong> konsisten diterapkan dalam <strong>${pctUtama}%</strong> sesi (${prinsipUtama.count} dari ${total}).`
+      });
+    } else if (pctUtama < 50) {
+      insights.push({
+        type: 'warning',
+        icon: 'alert-circle',
+        text: `Prinsip <strong>${prinsipUtama.label}</strong> baru diterapkan di <strong>${pctUtama}%</strong> sesi. Pertimbangkan pembinaan agar prinsip ini lebih konsisten.`
+      });
+    }
+
+    if (pctTersedikit < 40) {
+      insights.push({
+        type: 'warning',
+        icon: 'target',
+        text: `Prinsip <strong>${prinsipTersedikit.label}</strong> paling jarang diterapkan (<strong>${pctTersedikit}%</strong>). Area ini bisa jadi fokus pengembangan berikutnya.`
+      });
+    }
+
+    // Pengalaman belajar
+    const pengalamanCounts = PENGALAMAN_KEYS.map((k, i) => ({
+      label: PENGALAMAN_LABELS[i],
+      count: rawSupervisi.filter(s => (s.pengalaman_belajar || {})[k]).length
+    }));
+    const pengalamanMin = pengalamanCounts.reduce((min, x) => x.count < min.count ? x : min, pengalamanCounts[0]);
+    const pctPengalamanMin = Math.round((pengalamanMin.count / total) * 100);
+    if (pctPengalamanMin < 50) {
+      insights.push({
+        type: 'info',
+        icon: 'graduation-cap',
+        text: `Pengalaman belajar <strong>${pengalamanMin.label}</strong> baru difasilitasi di <strong>${pctPengalamanMin}%</strong> sesi. Perlu penguatan di area ini.`
+      });
+    }
+
+    // KKA
+    const denganKKA = rawSupervisi.filter(s => {
+      const obs = Array.isArray(s.observasi) ? s.observasi[0] : s.observasi;
+      return obs?.catatan_kka && obs.catatan_kka.trim() !== '';
+    }).length;
+    const pctKKA = Math.round((denganKKA / total) * 100);
+
+    if (pctKKA === 0) {
+      insights.push({
+        type: 'warning',
+        icon: 'code',
+        text: `<strong>Belum ada sesi</strong> dengan integrasi Koding atau AI. Sesuai Modul 5, integrasi KKA perlu didorong mulai dari perencanaan.`
+      });
+    } else if (pctKKA < 30) {
+      insights.push({
+        type: 'info',
+        icon: 'code',
+        text: `Integrasi KKA baru mencapai <strong>${pctKKA}%</strong> (${denganKKA} dari ${total} sesi). Target ideal adalah lebih dari 50%.`
+      });
+    } else if (pctKKA >= 50) {
+      insights.push({
+        type: 'success',
+        icon: 'award',
+        text: `Integrasi KKA sudah baik — <strong>${pctKKA}%</strong> sesi (${denganKKA} dari ${total}) menyertakan Koding/AI.`
+      });
+    }
+
+    // DPL dominan
+    const dplCounts = [1,2,3,4,5,6,7,8].map(n => ({
+      n,
+      label: DPL_LABELS[n-1],
+      count: rawSupervisi.filter(s => Array.isArray(s.dpl_target) && s.dpl_target.includes(n)).length
+    })).sort((a, b) => b.count - a.count);
+
+    if (dplCounts[0].count > 0) {
+      insights.push({
+        type: 'info',
+        icon: 'layers',
+        text: `DPL yang paling sering ditargetkan: <strong>${dplCounts[0].label}</strong> (${dplCounts[0].count} sesi). DPL paling jarang: <strong>${dplCounts[dplCounts.length-1].label}</strong> (${dplCounts[dplCounts.length-1].count} sesi).`
+      });
+    }
+
+    const typeColor = {
+      success: { bg: '#dcfce7', border: '#86efac', color: '#166534' },
+      warning: { bg: '#fef3c7', border: '#fde68a', color: '#92400e' },
+      info: { bg: '#dbeafe', border: '#93c5fd', color: '#1e40af' }
+    };
+
+    const box = document.getElementById('insightBox');
+    const list = document.getElementById('insightList');
+    box.style.display = 'block';
+    list.innerHTML = insights.map(i => {
+      const c = typeColor[i.type] || typeColor.info;
+      return `
+        <div style="display:flex; gap:0.75rem; padding:0.85rem; background:${c.bg}; border:1px solid ${c.border}; border-radius:8px; align-items:flex-start">
+          <div style="width:32px; height:32px; border-radius:8px; background:white; color:${c.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0">
+            <i data-lucide="${i.icon}" class="w-4 h-4"></i>
+          </div>
+          <div style="flex:1; font-size:0.85rem; color:${c.color}; line-height:1.5">${i.text}</div>
+        </div>`;
+    }).join('');
+
+    refreshIcons();
+  }
+
+  function destroyChart(id) {
+    if (charts[id]) {
+      charts[id].destroy();
+      charts[id] = null;
+    }
+  }
+
+  // Filter & Refresh
+  document.getElementById('filterPeriode').addEventListener('change', e => {
+    filterPeriode = e.target.value;
+    loadData();
+  });
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+</script>
+</body>
+</html>
