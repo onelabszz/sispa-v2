@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Riwayat Supervisi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Riwayat Supervisi</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Semua sesi supervisi & coaching yang pernah dilakukan</p>
+  </div>
+  <button id="btnRefresh" class="btn btn-secondary">
+    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+    <span>Refresh</span>
+  </button>
+</div>
+
+<!-- Stats -->
+<div id="miniStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.5rem"></div>
+
+<!-- Filter -->
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body" style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:0.75rem; align-items:center">
+    <div style="position:relative">
+      <span style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--slate-400)">
+        <i data-lucide="search" class="w-4 h-4"></i>
+      </span>
+      <input type="text" id="searchInput" class="input" style="padding-left:2.4rem" placeholder="Cari nama guru..." />
+    </div>
+    <select id="filterStatus" class="select">
+      <option value="">Semua Status</option>
+      <option value="pra_observasi">Pra-Observasi</option>
+      <option value="observasi">Observasi</option>
+      <option value="pasca_observasi">Pasca-Observasi</option>
+      <option value="selesai">Selesai</option>
+    </select>
+    <select id="filterPendekatan" class="select">
+      <option value="">Semua Pendekatan</option>
+      <option value="directive_control">Directive-Control</option>
+      <option value="directive_informational">Directive-Informational</option>
+      <option value="collaborative">Collaborative</option>
+      <option value="non_directive">Non-Directive</option>
+    </select>
+    <input type="month" id="filterBulan" class="input" />
+    <button id="btnReset" class="btn btn-ghost">Reset</button>
+  </div>
+</div>
+
+<!-- Tabel -->
+<div class="card" style="overflow:hidden">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="history" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Daftar Supervisi</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+    </div>
+  </div>
+  <div id="tableWrap" style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Guru</th>
+          <th style="text-align:center">Pendekatan</th>
+          <th>Tanggal Mulai</th>
+          <th>Tanggal Selesai</th>
+          <th style="text-align:center">Status</th>
+          <th style="text-align:right; width:200px">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="history" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada riwayat</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0 0 1rem">Mulai supervisi dari menu Program Supervisi</p>
+    <a href="/sispa-v2/ks/program.html" class="btn btn-primary">
+      <i data-lucide="clipboard-list" class="w-4 h-4"></i><span>Ke Program Supervisi</span>
+    </a>
+  </div>
+  <div id="noResultState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="search-x" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Tidak ada hasil</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Coba ubah filter</p>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/supervisi.js"></script>
+<script>
+  let user = null;
+  let allItems = [];
+  let filterText = '';
+  let filterStatus = '';
+  let filterPendekatan = '';
+  let filterBulan = '';
+
+  initPage('ks', 'riwayat', async (u) => {
+    user = u;
+    await loadData();
+  });
+
+  async function loadData() {
+    await withLoading('Memuat riwayat...', async () => {
+      try {
+        allItems = await SupervisiAPI.list({ npsn_sekolah: user.npsn });
+        renderStats();
+        renderTable();
+      } catch (err) {
+        showToast('Gagal memuat: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderStats() {
+    const total = allItems.length;
+    const selesai = allItems.filter(s => s.status === 'selesai').length;
+    const berjalan = allItems.filter(s => !['draft','selesai'].includes(s.status)).length;
+
+    document.getElementById('miniStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="clipboard-check" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Total</div><div style="font-size:1.25rem; font-weight:700">${total}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Selesai</div><div style="font-size:1.25rem; font-weight:700">${selesai}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="play-circle" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Berjalan</div><div style="font-size:1.25rem; font-weight:700">${berjalan}</div></div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const wrap = document.getElementById('tableWrap');
+    const empty = document.getElementById('emptyState');
+    const noResult = document.getElementById('noResultState');
+
+    wrap.style.display = 'none';
+    empty.classList.add('hidden');
+    noResult.classList.add('hidden');
+
+    if (!allItems.length) {
+      empty.classList.remove('hidden');
+      document.getElementById('resultCount').textContent = 0;
+      refreshIcons();
+      return;
+    }
+
+    let filtered = allItems.slice();
+
+    if (filterText) {
+      const q = filterText.toLowerCase();
+      filtered = filtered.filter(s => (s.nama_guru || '').toLowerCase().includes(q));
+    }
+    if (filterStatus) filtered = filtered.filter(s => s.status === filterStatus);
+    if (filterPendekatan) filtered = filtered.filter(s => s.pendekatan === filterPendekatan);
+    if (filterBulan) {
+      filtered = filtered.filter(s => {
+        const tgl = s.tanggal_mulai || s.created_at;
+        if (!tgl) return false;
+        return tgl.slice(0, 7) === filterBulan;
+      });
+    }
+
+    document.getElementById('resultCount').textContent = filtered.length + ' / ' + allItems.length;
+
+    if (!filtered.length) {
+      noResult.classList.remove('hidden');
+      refreshIcons();
+      return;
+    }
+    wrap.style.display = 'block';
+
+    const pendekatanLabel = (p) => p ? p.replace(/_/g,'-').replace(/\b\w/g, c => c.toUpperCase()) : '—';
+    const statusInfo = (s) => ({
+      draft: { label: 'Draft', cls: 'badge-neutral' },
+      pra_observasi: { label: 'Pra-Observasi', cls: 'badge-info' },
+      observasi: { label: 'Observasi', cls: 'badge-warning' },
+      pasca_observasi: { label: 'Pasca-Observasi', cls: 'badge-warning' },
+      selesai: { label: 'Selesai', cls: 'badge-success' }
+    }[s] || { label: s, cls: 'badge-neutral' });
+
+    tbody.innerHTML = filtered.map(s => {
+      const st = statusInfo(s.status);
+      const isSelesai = s.status === 'selesai';
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.75rem">
+              <div style="width:36px; height:36px; border-radius:50%; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.875rem; flex-shrink:0">
+                ${escapeHtml((s.nama_guru || 'G').charAt(0).toUpperCase())}
+              </div>
+              <div style="min-width:0">
+                <div style="font-weight:500; color:var(--slate-900)">${escapeHtml(s.nama_guru || '—')}</div>
+                <div style="font-size:0.75rem; color:var(--slate-500)">
+                  ${s.guru?.mapel ? escapeHtml(s.guru.mapel) : ''}${s.guru?.kelas ? ' · Kelas ' + escapeHtml(s.guru.kelas) : ''}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center; font-size:0.8rem">${pendekatanLabel(s.pendekatan)}</td>
+          <td style="font-size:0.8rem">${s.tanggal_mulai ? formatTanggal(s.tanggal_mulai) : '—'}</td>
+          <td style="font-size:0.8rem">${s.tanggal_selesai ? formatTanggal(s.tanggal_selesai) : '<span style="color:var(--slate-400)">—</span>'}</td>
+          <td style="text-align:center"><span class="badge ${st.cls}">${st.label}</span></td>
+          <td style="text-align:right; white-space:nowrap">
+            <a href="/sispa-v2/ks/supervisi-form.html?id=${s.id}" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem">
+              ${icon(isSelesai ? 'eye' : 'play-circle', 'w-3.5 h-3.5')}
+              <span>${isSelesai ? 'Lihat' : 'Lanjutkan'}</span>
+            </a>
+            ${isSelesai ? `
+              <a href="/sispa-v2/ks/cetak-supervisi.html?id=${s.id}" target="_blank" class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.6rem">
+                ${icon('printer', 'w-3.5 h-3.5')}
+                <span>Cetak</span>
+              </a>` : ''}
+          </td>
+        </tr>`;
+    }).join('');
+
+    refreshIcons();
+  }
+
+  let debounce = null;
+  document.getElementById('searchInput').addEventListener('input', e => {
+    filterText = e.target.value;
+    clearTimeout(debounce);
+    debounce = setTimeout(renderTable, 300);
+  });
+  document.getElementById('filterStatus').addEventListener('change', e => { filterStatus = e.target.value; renderTable(); });
+  document.getElementById('filterPendekatan').addEventListener('change', e => { filterPendekatan = e.target.value; renderTable(); });
+  document.getElementById('filterBulan').addEventListener('change', e => { filterBulan = e.target.value; renderTable(); });
+  document.getElementById('btnReset').addEventListener('click', () => {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterPendekatan').value = '';
+    document.getElementById('filterBulan').value = '';
+    filterText = filterStatus = filterPendekatan = filterBulan = '';
+    renderTable();
+  });
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+</script>
+</body>
+</html>
