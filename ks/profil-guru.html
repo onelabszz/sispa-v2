@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Profil Tipe Guru</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .kuadran-map {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: white;
+    border: 2px solid var(--slate-300);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .kuadran-quad {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    font-size: 0.7rem;
+    text-align: center;
+    transition: background .15s;
+  }
+  .kuadran-quad.q1 { top: 0; left: 0; background: #fee2e2; }
+  .kuadran-quad.q2 { top: 0; right: 0; background: #fef3c7; }
+  .kuadran-quad.q3 { bottom: 0; left: 0; background: #e0e7ff; }
+  .kuadran-quad.q4 { bottom: 0; right: 0; background: #dcfce7; }
+  .kuadran-quad .title { font-weight: 700; margin-bottom: 0.15rem; }
+  .kuadran-quad .sub { font-size: 0.62rem; color: var(--slate-600); opacity: 0.75; }
+  .kuadran-quad .count { font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; }
+
+  .kuadran-axis-label {
+    position: absolute;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--slate-600);
+    background: white;
+    padding: 0 0.4rem;
+  }
+  .axis-y-top { top: -0.5rem; left: 50%; transform: translateX(-50%); }
+  .axis-y-bottom { bottom: -0.5rem; left: 50%; transform: translateX(-50%); }
+  .axis-x-left { left: -0.4rem; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: center; }
+  .axis-x-right { right: -0.4rem; top: 50%; transform: translateY(-50%) rotate(90deg); transform-origin: center; }
+
+  @media (max-width: 768px) {
+    .kuadran-axis-label { font-size: 0.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Profil Tipe Guru</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">
+      Penilaian level komitmen & abstraksi untuk menentukan pendekatan supervisi
+    </p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <select id="filterPeriode" class="select" style="width:auto; min-width:180px">
+      <option value="">Semua Periode</option>
+    </select>
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+    <button id="btnAdd" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      <span>Nilai Guru</span>
+    </button>
+  </div>
+</div>
+
+<!-- Statistik -->
+<div id="miniStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.5rem"></div>
+
+<!-- Layout 2 kolom: Peta Kuadran + Tabel -->
+<div style="display:grid; grid-template-columns: 1fr 2fr; gap:1.5rem; margin-bottom:1.5rem" id="mainGrid">
+
+  <!-- Peta Kuadran 4 -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="compass" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Peta Tipe Guru</h2>
+      </div>
+    </div>
+    <div class="card-body" style="padding:1.5rem">
+      <div style="position:relative; padding:1.5rem 1.5rem 1.5rem 1.5rem">
+        <div class="kuadran-map" id="kuadranMap">
+          <div class="kuadran-quad q2" data-tipe="unfocused_worker">
+            <div class="title" style="color:#92400e">Unfocused Worker</div>
+            <div class="sub">Komitmen Tinggi<br>Abstraksi Rendah</div>
+            <div class="count" style="color:#92400e" id="countUnfocused">0</div>
+          </div>
+          <div class="kuadran-quad q3" data-tipe="analytical_observer">
+            <div class="title" style="color:#4338ca">Analytical Observer</div>
+            <div class="sub">Komitmen Rendah<br>Abstraksi Tinggi</div>
+            <div class="count" style="color:#4338ca" id="countAnalytical">0</div>
+          </div>
+          <div class="kuadran-quad q1" data-tipe="dropout">
+            <div class="title" style="color:#991b1b">Dropout</div>
+            <div class="sub">Komitmen Rendah<br>Abstraksi Rendah</div>
+            <div class="count" style="color:#991b1b" id="countDropout">0</div>
+          </div>
+          <div class="kuadran-quad q4" data-tipe="professional">
+            <div class="title" style="color:#166534">Professional</div>
+            <div class="sub">Komitmen Tinggi<br>Abstraksi Tinggi</div>
+            <div class="count" style="color:#166534" id="countProfessional">0</div>
+          </div>
+        </div>
+        <div class="kuadran-axis-label axis-y-top">Abstraksi Tinggi</div>
+        <div class="kuadran-axis-label axis-y-bottom">Abstraksi Rendah</div>
+        <div class="kuadran-axis-label axis-x-left">Komitmen Rendah</div>
+        <div class="kuadran-axis-label axis-x-right">Komitmen Tinggi</div>
+      </div>
+
+      <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--slate-200); font-size:0.75rem; color:var(--slate-500); text-align:center">
+        Klik kuadran untuk melihat guru dengan tipe tersebut
+      </div>
+    </div>
+  </div>
+
+  <!-- Panduan Pendekatan -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:0.5rem">
+        <i data-lucide="git-branch" class="w-4 h-4" style="color:var(--slate-500)"></i>
+        <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Rekomendasi Pendekatan per Tipe</h2>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="pendekatanList" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabel Guru -->
+<div class="card" style="overflow:hidden">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="users" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Daftar Guru</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+      <span id="filterLabel" class="hidden" style="font-size:0.75rem; color:var(--slate-500)"></span>
+    </div>
+    <button id="btnClearFilter" class="btn btn-ghost hidden" style="font-size:0.75rem">
+      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      <span>Hapus Filter</span>
+    </button>
+  </div>
+  <div id="tableWrap" style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Guru</th>
+          <th style="text-align:center">Abstraksi</th>
+          <th style="text-align:center">Komitmen</th>
+          <th style="text-align:center">Tipe</th>
+          <th>Pendekatan Rekomendasi</th>
+          <th style="text-align:right; width:130px">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="compass" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada penilaian</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0 0 1rem">Mulai nilai tipe guru untuk menentukan pendekatan supervisi</p>
+    <button onclick="document.getElementById('btnAdd').click()" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i><span>Nilai Guru Pertama</span>
+    </button>
+  </div>
+  <div id="noResultState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="search-x" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Tidak ada guru dengan filter ini</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Klik "Hapus Filter" untuk melihat semua</p>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/guru.js"></script>
+<script src="/sispa-v2/assets/js/api/profil-tipe.js"></script>
+<script>
+  let user = null;
+  let guruList = [];
+  let tipeMap = {}; // guru_id → tipe record (terbaru per periode)
+  let filterPeriode = '';
+  let filterTipe = '';
+
+  initPage('ks', 'profil-guru', async (u) => {
+    user = u;
+    initPeriodeOptions();
+    await loadData();
+  });
+
+  function initPeriodeOptions() {
+    // Buat opsi periode: 4 semester terakhir
+    const opts = [];
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+
+    // Semester sekarang
+    if (m >= 7) {
+      opts.push(y + '/' + (y+1) + '-Ganjil');
+      opts.push((y-1) + '/' + y + '-Genap');
+    } else {
+      opts.push((y-1) + '/' + y + '-Genap');
+      opts.push((y-1) + '/' + y + '-Ganjil');
+    }
+    // Tambah 2 semester lebih lama
+    if (m >= 7) {
+      opts.push((y-1) + '/' + y + '-Genap');
+      opts.push((y-1) + '/' + y + '-Ganjil');
+    } else {
+      opts.push((y-2) + '/' + (y-1) + '-Ganjil');
+      opts.push((y-2) + '/' + (y-1) + '-Genap');
+    }
+
+    const unique = [...new Set(opts)];
+    const sel = document.getElementById('filterPeriode');
+    sel.innerHTML = '<option value="">Semua Periode</option>';
+    unique.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p;
+      o.textContent = p.replace('-', ' · ');
+      sel.appendChild(o);
+    });
+  }
+
+  function getPeriodeDefault() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    if (m >= 7) return y + '/' + (y+1) + '-Ganjil';
+    return (y-1) + '/' + y + '-Genap';
+  }
+
+  async function loadData() {
+    await withLoading('Memuat data...', async () => {
+      try {
+        // Ambil guru di sekolah ini
+        guruList = await GuruAPI.list({ npsn_sekolah: user.npsn });
+        if (guruList.length === 0) {
+          renderAll();
+          return;
+        }
+
+        // Ambil tipe guru
+        const tipeList = await ProfilTipeAPI.listByGuruIds(guruList.map(g => g.id));
+
+        // Map: guru_id → tipe terbaru (kalau ada filter periode, hanya periode itu)
+        tipeMap = {};
+        tipeList.forEach(t => {
+          if (filterPeriode && t.periode !== filterPeriode) return;
+          const existing = tipeMap[t.guru_id];
+          if (!existing || new Date(t.created_at) > new Date(existing.created_at)) {
+            tipeMap[t.guru_id] = t;
+          }
+        });
+
+        renderAll();
+      } catch (err) {
+        showToast('Gagal memuat: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderAll() {
+    renderStats();
+    renderPendekatan();
+    renderTable();
+    renderKuadranCount();
+    refreshIcons();
+  }
+
+  function renderStats() {
+    const total = guruList.length;
+    const dinilai = Object.keys(tipeMap).length;
+    const belum = total - dinilai;
+
+    document.getElementById('miniStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff; color:#4338ca"><i data-lucide="users" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Total Guru</div><div style="font-size:1.25rem; font-weight:700">${total}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#166534"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Sudah Dinilai</div><div style="font-size:1.25rem; font-weight:700">${dinilai}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#92400e"><i data-lucide="clock" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Belum Dinilai</div><div style="font-size:1.25rem; font-weight:700">${belum}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe; color:#1e40af"><i data-lucide="compass" class="w-5 h-5"></i></div>
+        <div><div style="font-size:0.75rem; color:var(--slate-500)">Tipe Dominan</div><div style="font-size:1.25rem; font-weight:700" id="dominanTipe">—</div></div>
+      </div>`;
+
+    // Hitung tipe dominan
+    const dist = { dropout: 0, unfocused_worker: 0, analytical_observer: 0, professional: 0 };
+    Object.values(tipeMap).forEach(t => {
+      if (dist[t.tipe] !== undefined) dist[t.tipe]++;
+    });
+    const mapping = ProfilTipeAPI.getMapping();
+    let topTipe = '-', topCount = 0;
+    Object.keys(dist).forEach(k => {
+      if (dist[k] > topCount) { topCount = dist[k]; topTipe = k; }
+    });
+    const labelMap = {
+      dropout: 'Dropout',
+      unfocused_worker: 'Unfocused Worker',
+      analytical_observer: 'Analytical Observer',
+      professional: 'Professional'
+    };
+    document.getElementById('dominanTipe').textContent = topCount > 0 ? labelMap[topTipe] : '—';
+  }
+
+  function renderKuadranCount() {
+    const dist = { dropout: 0, unfocused_worker: 0, analytical_observer: 0, professional: 0 };
+    Object.values(tipeMap).forEach(t => {
+      if (dist[t.tipe] !== undefined) dist[t.tipe]++;
+    });
+    document.getElementById('countDropout').textContent = dist.dropout;
+    document.getElementById('countUnfocused').textContent = dist.unfocused_worker;
+    document.getElementById('countAnalytical').textContent = dist.analytical_observer;
+    document.getElementById('countProfessional').textContent = dist.professional;
+
+    // Klik kuadran → filter
+    document.querySelectorAll('.kuadran-quad').forEach(q => {
+      q.style.cursor = 'pointer';
+      q.addEventListener('click', () => {
+        filterTipe = q.dataset.tipe;
+        renderTable();
+        document.getElementById('filterLabel').classList.remove('hidden');
+        document.getElementById('filterLabel').textContent = '· Filter: ' + q.querySelector('.title').textContent;
+        document.getElementById('btnClearFilter').classList.remove('hidden');
+        refreshIcons();
+      });
+    });
+  }
+
+  function renderPendekatan() {
+    const mapping = ProfilTipeAPI.getMapping();
+    const items = [
+      { key: 'directive_control', tipe: 'Dropout', kuadran: 'I', color: '#991b1b', bg: '#fee2e2', teknik: 'Mentoring' },
+      { key: 'directive_informational', tipe: 'Unfocused Worker', kuadran: 'II', color: '#92400e', bg: '#fef3c7', teknik: 'Mentoring' },
+      { key: 'collaborative', tipe: 'Analytical Observer', kuadran: 'III', color: '#4338ca', bg: '#e0e7ff', teknik: 'Coaching + Mentoring' },
+      { key: 'non_directive', tipe: 'Professional', kuadran: 'IV', color: '#166534', bg: '#dcfce7', teknik: 'Coaching' }
+    ];
+    document.getElementById('pendekatanList').innerHTML = items.map(i => `
+      <div style="padding:0.75rem; border-radius:8px; background:${i.bg}; border:1px solid ${i.color}20">
+        <div style="font-size:0.7rem; color:${i.color}; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">
+          Kuadran ${i.kuadran} · ${i.tipe}
+        </div>
+        <div style="font-size:0.95rem; font-weight:700; color:var(--slate-900); margin-top:0.25rem">
+          ${i.key.replace(/_/g,'-').replace(/\b\w/g, c => c.toUpperCase())}
+        </div>
+        <div style="font-size:0.75rem; color:var(--slate-600); margin-top:0.25rem">
+          Teknik: ${i.teknik}
+        </div>
+      </div>`).join('');
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const wrap = document.getElementById('tableWrap');
+    const empty = document.getElementById('emptyState');
+    const noResult = document.getElementById('noResultState');
+
+    wrap.style.display = 'none';
+    empty.classList.add('hidden');
+    noResult.classList.add('hidden');
+
+    if (guruList.length === 0) {
+      empty.classList.remove('hidden');
+      document.getElementById('resultCount').textContent = 0;
+      return;
+    }
+
+    // Filter berdasarkan tipe (kalau ada)
+    let filtered = guruList.slice();
+    if (filterTipe) {
+      filtered = filtered.filter(g => {
+        const t = tipeMap[g.id];
+        return t && t.tipe === filterTipe;
+      });
+    }
+
+    document.getElementById('resultCount').textContent = filtered.length + ' / ' + guruList.length;
+
+    if (filtered.length === 0) {
+      noResult.classList.remove('hidden');
+      return;
+    }
+    wrap.style.display = 'block';
+
+    const tipeBadge = {
+      dropout: { cls: 'badge-danger', label: 'Dropout' },
+      unfocused_worker: { cls: 'badge-warning', label: 'Unfocused Worker' },
+      analytical_observer: { cls: 'badge-info', label: 'Analytical Observer' },
+      professional: { cls: 'badge-success', label: 'Professional' }
+    };
+
+    tbody.innerHTML = filtered.map(g => {
+      const t = tipeMap[g.id];
+      const tipeInfo = t ? tipeBadge[t.tipe] : null;
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.75rem">
+              <div style="width:36px; height:36px; border-radius:50%; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.875rem; flex-shrink:0">
+                ${escapeHtml((g.nama || 'G').charAt(0).toUpperCase())}
+              </div>
+              <div style="min-width:0">
+                <div style="font-weight:500; color:var(--slate-900)">${escapeHtml(g.nama)}</div>
+                <div style="font-size:0.75rem; color:var(--slate-500)">
+                  ${g.mapel ? escapeHtml(g.mapel) : '—'}${g.kelas ? ' · Kelas ' + escapeHtml(g.kelas) : ''}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            ${t ? (t.level_abstraksi === 'tinggi'
+              ? '<span class="badge badge-success">Tinggi</span>'
+              : '<span class="badge badge-danger">Rendah</span>')
+              : '<span style="color:var(--slate-400); font-size:0.75rem">—</span>'}
+          </td>
+          <td style="text-align:center">
+            ${t ? (t.level_komitmen === 'tinggi'
+              ? '<span class="badge badge-success">Tinggi</span>'
+              : '<span class="badge badge-danger">Rendah</span>')
+              : '<span style="color:var(--slate-400); font-size:0.75rem">—</span>'}
+          </td>
+          <td style="text-align:center">
+            ${tipeInfo
+              ? `<span class="badge ${tipeInfo.cls}">${tipeInfo.label}</span>`
+              : '<span style="color:var(--slate-400); font-size:0.75rem">Belum dinilai</span>'}
+          </td>
+          <td style="font-size:0.875rem">
+            ${t ? `<div style="font-weight:500; color:var(--slate-900)">${t.pendekatan_rekomendasi.replace(/_/g,'-').replace(/\b\w/g,c=>c.toUpperCase())}</div>
+                    <div style="font-size:0.7rem; color:var(--slate-500)">${t.periode}</div>`
+              : '<span style="color:var(--slate-400); font-size:0.75rem">—</span>'}
+          </td>
+          <td style="text-align:right; white-space:nowrap">
+            ${t ? `
+              <button class="icon-btn" data-edit="${t.id}" title="Edit">${icon('pencil', 'w-4 h-4')}</button>
+              <button class="icon-btn" style="color:var(--danger)" data-del="${t.id}" title="Hapus">${icon('trash-2', 'w-4 h-4')}</button>
+            ` : `
+              <button class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.6rem" data-nilai="${g.id}">
+                ${icon('clipboard-list', 'w-3.5 h-3.5')}
+                <span>Nilai</span>
+              </button>
+            `}
+          </td>
+        </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openForm(null, b.dataset.edit)));
+    tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => doDelete(b.dataset.del)));
+    tbody.querySelectorAll('[data-nilai]').forEach(b => b.addEventListener('click', () => openForm(b.dataset.nilai)));
+
+    refreshIcons();
+  }
+
+  document.getElementById('btnClearFilter').addEventListener('click', () => {
+    filterTipe = '';
+    document.getElementById('filterLabel').classList.add('hidden');
+    document.getElementById('btnClearFilter').classList.add('hidden');
+    renderTable();
+    refreshIcons();
+  });
+
+  // ===== FILTER PERIODE =====
+  document.getElementById('filterPeriode').addEventListener('change', (e) => {
+    filterPeriode = e.target.value;
+    filterTipe = '';
+    document.getElementById('filterLabel').classList.add('hidden');
+    document.getElementById('btnClearFilter').classList.add('hidden');
+    loadData();
+  });
+
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+
+  // ===== FORM PENILAIAN =====
+  document.getElementById('btnAdd').addEventListener('click', () => openForm());
+
+  function openForm(guruId, editId) {
+    const isEdit = !!editId;
+    let existing = null;
+
+    if (isEdit) {
+      // Cari tipe di map
+      existing = Object.values(tipeMap).find(t => t.id === editId);
+    }
+
+    // Guru yang belum dinilai (kalau bukan edit)
+    let pilihanGuru = guruList.filter(g => !tipeMap[g.id]);
+    if (isEdit && existing) {
+      pilihanGuru = guruList; // saat edit, guru tetap bisa dipilih
+    }
+    if (guruId) {
+      // Dari tombol "Nilai" di tabel — guru tertentu
+      pilihanGuru = guruList.filter(g => g.id === guruId);
+    }
+
+    const defaultPeriode = existing ? existing.periode : getPeriodeDefault();
+
+    openModal({
+      title: isEdit ? 'Edit Penilaian Tipe Guru' : 'Penilaian Tipe Guru',
+      maxWidth: '720px',
+      body: `
+        <form style="display:flex; flex-direction:column; gap:1.25rem">
+
+          <!-- Guru & Periode -->
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:0.75rem">
+            <div>
+              <label class="label" for="fGuru">Guru <span style="color:var(--danger)">*</span></label>
+              <select id="fGuru" class="select" required ${isEdit ? 'disabled' : ''}>
+                <option value="">— Pilih Guru —</option>
+                ${pilihanGuru.map(g => `
+                  <option value="${g.id}" ${(guruId === g.id || (existing && existing.guru_id === g.id)) ? 'selected' : ''}>
+                    ${escapeHtml(g.nama)}
+                  </option>`).join('')}
+              </select>
+              ${pilihanGuru.length === 0 && !isEdit ? '<p style="font-size:0.75rem; color:var(--warning); margin-top:0.25rem">Semua guru sudah dinilai untuk periode ini</p>' : ''}
+            </div>
+            <div>
+              <label class="label" for="fPeriode">Periode <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="fPeriode" class="input text-mono" required
+                     value="${escapeHtml(defaultPeriode)}"
+                     placeholder="2025/2026-Ganjil"
+                     ${isEdit ? 'disabled' : ''} />
+            </div>
+          </div>
+
+          <!-- Info -->
+          <div style="padding:0.875rem; border-radius:8px; background:var(--brand-50); border:1px solid var(--brand-100); font-size:0.8rem; color:var(--brand-900); line-height:1.5">
+            <strong>Cara Penilaian (Modul 5 hal. 46):</strong>
+            <ol style="margin:0.5rem 0 0 1.25rem; padding:0">
+              <li>Amati pembelajaran, catat kesenjangan yang terlihat</li>
+              <li>Tanya guru: <em>"Apa masalah pembelajaran? Bagaimana cara memperbaikinya?"</em></li>
+              <li>Jika guru <strong>tidak mampu menemukan masalah</strong> → Abstraksi <strong>Rendah</strong></li>
+              <li>Jika guru mampu, tanya <strong>kesediaan & waktu</strong> memperbaiki:
+                <ul style="margin:0.25rem 0 0 1rem; padding:0">
+                  <li>Tidak bersedia → Komitmen <strong>Rendah</strong></li>
+                  <li>Bersedia & menyediakan waktu → Komitmen <strong>Tinggi</strong></li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+
+          <!-- Catatan Observasi -->
+          <div>
+            <label class="label" for="fObs">Catatan Observasi & Kesenjangan</label>
+            <textarea id="fObs" rows="3" class="textarea" placeholder="Contoh: Murid pasif saat diskusi, guru dominan ceramah..."></textarea>
+          </div>
+
+          <!-- Level Abstraksi -->
+          <div style="padding:1rem; border:1px solid var(--slate-200); border-radius:8px">
+            <label class="label" style="margin-bottom:0.5rem">
+              Level Abstraksi <span style="color:var(--danger)">*</span>
+            </label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.75rem">
+              <label id="lblAbsRendah" style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem; border:2px solid var(--slate-200); border-radius:8px; cursor:pointer; transition:all .15s">
+                <input type="radio" name="abs" value="rendah" style="margin:0" />
+                <div>
+                  <div style="font-weight:600; font-size:0.875rem">Rendah</div>
+                  <div style="font-size:0.7rem; color:var(--slate-500)">Tidak mampu menemukan masalah sendiri</div>
+                </div>
+              </label>
+              <label id="lblAbsTinggi" style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem; border:2px solid var(--slate-200); border-radius:8px; cursor:pointer; transition:all .15s">
+                <input type="radio" name="abs" value="tinggi" style="margin:0" />
+                <div>
+                  <div style="font-weight:600; font-size:0.875rem">Tinggi</div>
+                  <div style="font-size:0.7rem; color:var(--slate-500)">Mampu menganalisis masalah & solusi</div>
+                </div>
+              </label>
+            </div>
+            <textarea id="fCatAbs" rows="2" class="textarea text-sm" placeholder="Bukti/kutipan: apa yang membuat Anda menilai level ini?"></textarea>
+          </div>
+
+          <!-- Level Komitmen -->
+          <div style="padding:1rem; border:1px solid var(--slate-200); border-radius:8px">
+            <label class="label" style="margin-bottom:0.5rem">
+              Level Komitmen <span style="color:var(--danger)">*</span>
+            </label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.75rem">
+              <label id="lblKomRendah" style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem; border:2px solid var(--slate-200); border-radius:8px; cursor:pointer; transition:all .15s">
+                <input type="radio" name="kom" value="rendah" style="margin:0" />
+                <div>
+                  <div style="font-weight:600; font-size:0.875rem">Rendah</div>
+                  <div style="font-size:0.7rem; color:var(--slate-500)">Tidak bersedia / tidak ada waktu</div>
+                </div>
+              </label>
+              <label id="lblKomTinggi" style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem; border:2px solid var(--slate-200); border-radius:8px; cursor:pointer; transition:all .15s">
+                <input type="radio" name="kom" value="tinggi" style="margin:0" />
+                <div>
+                  <div style="font-weight:600; font-size:0.875rem">Tinggi</div>
+                  <div style="font-size:0.7rem; color:var(--slate-500)">Bersedia & menyediakan waktu</div>
+                </div>
+              </label>
+            </div>
+            <textarea id="fCatKom" rows="2" class="textarea text-sm" placeholder="Bukti/kutipan: apa yang membuat Anda menilai level ini?"></textarea>
+          </div>
+
+          <!-- Preview Hasil -->
+          <div id="previewHasil" style="display:none; padding:1rem; border-radius:8px; border:2px dashed var(--brand-500); background:var(--brand-50)">
+            <div style="font-size:0.75rem; color:var(--brand-700); font-weight:600; text-transform:uppercase">Hasil Penilaian</div>
+            <div style="font-size:1.25rem; font-weight:700; color:var(--slate-900); margin-top:0.5rem" id="previewTipe">—</div>
+            <div style="font-size:0.875rem; color:var(--slate-700); margin-top:0.5rem">
+              <strong>Pendekatan</strong>: <span id="previewPendekatan">—</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--slate-600); margin-top:0.35rem" id="previewDeskripsi">—</div>
+          </div>
+
+        </form>`,
+      footer: `
+        <button class="btn btn-secondary" data-close>Batal</button>
+        <button class="btn btn-primary" id="btnSave">
+          ${icon('save', 'w-4 h-4')}<span>Simpan Penilaian</span>
+        </button>`
+    });
+
+    // Set nilai awal (kalau edit)
+    if (existing) {
+      document.getElementById('fObs').value = existing.catatan_observasi || '';
+      document.getElementById('fCatAbs').value = existing.catatan_abstraksi || '';
+      document.getElementById('fCatKom').value = existing.catatan_komitmen || '';
+      const rAbs = document.querySelector(`input[name="abs"][value="${existing.level_abstraksi}"]`);
+      const rKom = document.querySelector(`input[name="kom"][value="${existing.level_komitmen}"]`);
+      if (rAbs) rAbs.checked = true;
+      if (rKom) rKom.checked = true;
+    }
+
+    // Event: update label style & preview
+    function updatePreview() {
+      const abs = document.querySelector('input[name="abs"]:checked')?.value;
+      const kom = document.querySelector('input[name="kom"]:checked')?.value;
+
+      // Update label border
+      document.getElementById('lblAbsRendah').style.borderColor = abs === 'rendah' ? 'var(--brand-500)' : 'var(--slate-200)';
+      document.getElementById('lblAbsTinggi').style.borderColor = abs === 'tinggi' ? 'var(--brand-500)' : 'var(--slate-200)';
+      document.getElementById('lblKomRendah').style.borderColor = kom === 'rendah' ? 'var(--brand-500)' : 'var(--slate-200)';
+      document.getElementById('lblKomTinggi').style.borderColor = kom === 'tinggi' ? 'var(--brand-500)' : 'var(--slate-200)';
+
+      if (abs && kom) {
+        const mapping = ProfilTipeAPI.hitungTipe(abs, kom);
+        if (mapping) {
+          document.getElementById('previewHasil').style.display = 'block';
+          document.getElementById('previewTipe').textContent =
+            'Kuadran ' + mapping.kuadran + ' — ' + mapping.label;
+          document.getElementById('previewPendekatan').textContent =
+            mapping.pendekatan_label + ' (' + mapping.teknik + ')';
+          document.getElementById('previewDeskripsi').textContent = mapping.deskripsi;
+        }
+      } else {
+        document.getElementById('previewHasil').style.display = 'none';
+      }
+    }
+
+    document.querySelectorAll('input[name="abs"], input[name="kom"]').forEach(r => {
+      r.addEventListener('change', updatePreview);
+    });
+    if (existing) updatePreview();
+
+    // Save handler
+    document.getElementById('btnSave').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSave');
+      const guruIdVal = isEdit ? existing.guru_id : document.getElementById('fGuru').value;
+      const periode = isEdit ? existing.periode : document.getElementById('fPeriode').value.trim();
+      const abs = document.querySelector('input[name="abs"]:checked')?.value;
+      const kom = document.querySelector('input[name="kom"]:checked')?.value;
+
+      if (!guruIdVal) return showToast('Guru wajib dipilih', 'error');
+      if (!periode) return showToast('Periode wajib diisi', 'error');
+      if (!abs) return showToast('Pilih level abstraksi', 'error');
+      if (!kom) return showToast('Pilih level komitmen', 'error');
+
+      const payload = {
+        guru_id: guruIdVal,
+        periode,
+        level_abstraksi: abs,
+        level_komitmen: kom,
+        catatan_observasi: document.getElementById('fObs').value.trim(),
+        catatan_abstraksi: document.getElementById('fCatAbs').value.trim(),
+        catatan_komitmen: document.getElementById('fCatKom').value.trim()
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+      refreshIcons();
+
+      try {
+        if (isEdit) {
+          await ProfilTipeAPI.update(editId, payload);
+          closeModal();
+          showToast('Penilaian diperbarui', 'success');
+        } else {
+          await ProfilTipeAPI.create(payload);
+          closeModal();
+          showToast('Penilaian tersimpan', 'success');
+        }
+        await loadData();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = `${icon('save', 'w-4 h-4')}<span>Simpan Penilaian</span>`;
+        refreshIcons();
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  async function doDelete(id) {
+    const t = Object.values(tipeMap).find(x => x.id === id);
+    if (!t) return;
+    const ok = await confirmAction(
+      'Hapus penilaian tipe?',
+      'Guru akan kembali ke status "Belum dinilai".',
+      { confirmText: 'Ya, hapus', danger: true }
+    );
+    if (!ok) return;
+
+    await withLoading('Menghapus...', async () => {
+      try {
+        await ProfilTipeAPI.remove(id);
+        showToast('Penilaian dihapus', 'success');
+        await loadData();
+      } catch (err) { showToast('Gagal: ' + err.message, 'error'); }
+    });
+  }
+</script>
+</body>
+</html>
