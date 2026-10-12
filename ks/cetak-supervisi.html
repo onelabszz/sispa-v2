@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Cetak Laporan Supervisi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  body { background: #f1f5f9; padding: 24px; font-family: 'Inter', sans-serif; }
+
+  .toolbar {
+    position: fixed; top: 16px; right: 16px; z-index: 100;
+    display: flex; gap: 8px;
+  }
+
+  .doc {
+    background: white;
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20mm 18mm;
+    box-shadow: 0 4px 24px rgba(15,23,42,0.08);
+    color: #0f172a;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  .doc h1 {
+    font-size: 16pt; font-weight: 700; text-align: center;
+    margin: 0 0 4px; letter-spacing: 0.5px;
+  }
+  .doc h2 {
+    font-size: 12pt; font-weight: 700;
+    margin: 20px 0 8px; padding-bottom: 4px;
+    border-bottom: 1.5px solid #0f172a;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .doc h3 {
+    font-size: 11pt; font-weight: 600;
+    margin: 12px 0 6px;
+  }
+
+  .doc .header-sub {
+    text-align: center; font-size: 10pt; color: #475569;
+    margin-bottom: 24px;
+  }
+
+  .doc table {
+    width: 100%; border-collapse: collapse;
+    margin: 8px 0 12px;
+  }
+  .doc table.info td {
+    padding: 4px 6px; vertical-align: top;
+    font-size: 10.5pt;
+  }
+  .doc table.info td:first-child {
+    width: 140px; color: #475569;
+  }
+  .doc table.info td:nth-child(2) {
+    width: 12px;
+  }
+
+  .doc .field {
+    margin-bottom: 10px;
+  }
+  .doc .field-label {
+    font-weight: 600; font-size: 10.5pt;
+    color: #334155; margin-bottom: 3px;
+  }
+  .doc .field-value {
+    white-space: pre-wrap;
+    padding: 8px 10px;
+    background: #f8fafc;
+    border-left: 3px solid #6366f1;
+    border-radius: 0 4px 4px 0;
+    font-size: 10.5pt;
+    min-height: 20px;
+  }
+  .doc .field-value.empty {
+    color: #94a3b8; font-style: italic;
+  }
+
+  .doc .checklist {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .doc .checklist span {
+    padding: 3px 8px; border-radius: 4px;
+    background: #eef2ff; color: #4338ca;
+    font-size: 9.5pt; font-weight: 500;
+  }
+  .doc .checklist span.off {
+    background: #f1f5f9; color: #94a3b8;
+    text-decoration: line-through;
+  }
+
+  .doc .ttd-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 24px; margin-top: 40px;
+  }
+  .doc .ttd-box {
+    text-align: center; font-size: 10pt;
+  }
+  .doc .ttd-box .ttd-space {
+    height: 60px;
+    display: flex; align-items: center; justify-content: center;
+    color: #94a3b8; font-size: 9pt; font-style: italic;
+  }
+  .doc .ttd-box .ttd-name {
+    margin-top: 6px; font-weight: 600;
+    border-top: 1px solid #0f172a; padding-top: 4px;
+  }
+
+  .doc .footer {
+    margin-top: 32px; padding-top: 12px;
+    border-top: 1px dashed #cbd5e1;
+    text-align: center; font-size: 9pt; color: #94a3b8;
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; padding: 0; }
+    .toolbar { display: none; }
+    .doc { box-shadow: none; padding: 0; max-width: 100%; }
+    .doc .field-value { background: transparent; border-left: 2px solid #94a3b8; }
+    @page { margin: 15mm; size: A4; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toolbar (tidak ikut tercetak) -->
+<div class="toolbar">
+  <a href="javascript:window.close()" class="btn btn-secondary">
+    <span>✕ Tutup</span>
+  </a>
+  <button onclick="window.print()" class="btn btn-primary">
+    <span>🖨️ Cetak / Simpan PDF</span>
+  </button>
+</div>
+
+<!-- Loading state -->
+<div id="loading" style="text-align:center; padding:80px 20px; color:#64748b">
+  <div style="font-size:14px">Memuat data supervisi...</div>
+</div>
+
+<!-- Dokumen -->
+<div id="doc" class="doc" style="display:none"></div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/api/supervisi.js"></script>
+<script src="/sispa-v2/assets/js/api/guru.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  // Escape sederhana
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function fmtTgl(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  function field(label, value) {
+    const isEmpty = !value || String(value).trim() === '';
+    return `
+      <div class="field">
+        <div class="field-label">${esc(label)}</div>
+        <div class="field-value ${isEmpty ? 'empty' : ''}">${isEmpty ? '(tidak diisi)' : esc(value)}</div>
+      </div>`;
+  }
+
+  function checklist(items, active) {
+    return `<div class="checklist">${items.map(item => {
+      const isOn = active.includes(item.key || item);
+      const label = item.label || item;
+      return `<span class="${isOn ? '' : 'off'}">${isOn ? '✓ ' : ''}${esc(label)}</span>`;
+    }).join('')}</div>`;
+  }
+
+  async function load() {
+    if (!id) {
+      document.getElementById('loading').innerHTML = '<div style="color:#dc2626">ID supervisi tidak ditemukan di URL.</div>';
+      return;
+    }
+
+    try {
+      // Cek login
+      const session = await sb.auth.getSession();
+      if (!session.data.session) {
+        document.getElementById('loading').innerHTML = '<div style="color:#dc2626">Anda belum login. Silakan login di SISPA terlebih dahulu.</div>';
+        return;
+      }
+
+      const s = await SupervisiAPI.get(id);
+      renderDoc(s);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('doc').style.display = 'block';
+
+      // Auto print setelah render
+      setTimeout(() => window.print(), 400);
+    } catch (err) {
+      document.getElementById('loading').innerHTML = '<div style="color:#dc2626">Gagal memuat: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  function renderDoc(s) {
+    const guru = s.guru || {};
+    const pra = s.pra_observasi || {};
+    const obs = s.observasi || {};
+    const pasca = s.pasca_observasi || {};
+    const tipe = s.profil_tipe || {};
+    const aspekPM = s.aspek_pm || {};
+    const pengalaman = s.pengalaman_belajar || {};
+    const dplTarget = s.dpl_target || [];
+    const respon = pasca.respons_supervisor || {};
+    const momenPM = obs.catatan_momen_pm || [];
+
+    const prinsipPMList = [
+      { key: 'berkesadaran', label: 'Berkesadaran' },
+      { key: 'bermakna', label: 'Bermakna' },
+      { key: 'menggembirakan', label: 'Menggembirakan' }
+    ];
+    const pengalamanList = [
+      { key: 'memahami', label: 'Memahami' },
+      { key: 'mengaplikasi', label: 'Mengaplikasi' },
+      { key: 'merefleksi', label: 'Merefleksi' }
+    ];
+    const dplList = [
+      { key: 1, label: 'DPL 1 — Keimanan' },
+      { key: 2, label: 'DPL 2 — Kewargaan' },
+      { key: 3, label: 'DPL 3 — Penalaran Kritis' },
+      { key: 4, label: 'DPL 4 — Kreativitas' },
+      { key: 5, label: 'DPL 5 — Kolaborasi' },
+      { key: 6, label: 'DPL 6 — Kemandirian' },
+      { key: 7, label: 'DPL 7 — Kesehatan' },
+      { key: 8, label: 'DPL 8 — Komunikasi' }
+    ];
+    const momenList = [
+      { key: 'murid_aktif_konstruksi', label: 'Murid aktif konstruksi' },
+      { key: 'murid_berkolaborasi', label: 'Murid berkolaborasi' },
+      { key: 'murid_refleksi', label: 'Murid refleksi' },
+      { key: 'guru_memuliakan', label: 'Guru memuliakan' },
+      { key: 'guru_beri_tantangan', label: 'Guru beri tantangan' },
+      { key: 'guru_fasilitasi', label: 'Guru memfasilitasi' }
+    ];
+
+    const pendekatanLabel = s.pendekatan
+      ? s.pendekatan.replace(/_/g,'-').replace(/\b\w/g, c => c.toUpperCase())
+      : '—';
+
+    const tipeLabel = tipe.tipe
+      ? tipe.tipe.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase())
+      : '—';
+
+    // Aktif checklist untuk prinsip & pengalaman
+    const aspekPMActive = Object.keys(aspekPM).filter(k => aspekPM[k]);
+    const pengalamanActive = Object.keys(pengalaman).filter(k => pengalaman[k]);
+
+    const doc = `
+      <h1>LEMBAR SUPERVISI AKADEMIK</h1>
+      <div class="header-sub">
+        Pembelajaran Mendalam (PM) termasuk Koding & Kecerdasan Artifisial<br>
+        ${esc(s.nama_sekolah || '')} — NPSN ${esc(s.npsn_sekolah || '')}
+      </div>
+
+      <h2>Identitas</h2>
+      <table class="info">
+        <tr><td>Nama Guru</td><td>:</td><td><strong>${esc(guru.nama || '—')}</strong></td></tr>
+        <tr><td>NIP</td><td>:</td><td>${esc(guru.nip || '—')}</td></tr>
+        <tr><td>Mata Pelajaran</td><td>:</td><td>${esc(guru.mapel || '—')}</td></tr>
+        <tr><td>Kelas</td><td>:</td><td>${esc(guru.kelas || '—')}</td></tr>
+        <tr><td>Tipe Guru</td><td>:</td><td>${esc(tipeLabel)}${tipe.level_abstraksi ? ` (Abstraksi: ${esc(tipe.level_abstraksi)}, Komitmen: ${esc(tipe.level_komitmen)})` : ''}</td></tr>
+        <tr><td>Pendekatan</td><td>:</td><td>${esc(pendekatanLabel)}</td></tr>
+        <tr><td>Tanggal Mulai</td><td>:</td><td>${esc(fmtTgl(s.tanggal_mulai))}</td></tr>
+        <tr><td>Tanggal Selesai</td><td>:</td><td>${esc(fmtTgl(s.tanggal_selesai))}</td></tr>
+      </table>
+
+      <h2>Tahap 1 — Pra-Observasi</h2>
+      ${field('Tujuan Pembelajaran', pra.tujuan_pembelajaran)}
+      ${field('Strategi / Praktik Pedagogis', pra.strategi_pm)}
+      ${field('Rencana Asesmen', pra.asesmen_rencana)}
+
+      <div class="field">
+        <div class="field-label">Prinsip Pembelajaran Mendalam</div>
+        ${checklist(prinsipPMList, aspekPMActive)}
+      </div>
+
+      <div class="field">
+        <div class="field-label">Pengalaman Belajar</div>
+        ${checklist(pengalamanList, pengalamanActive)}
+      </div>
+
+      <div class="field">
+        <div class="field-label">Dimensi Profil Lulusan (target)</div>
+        ${checklist(dplList, dplTarget)}
+      </div>
+
+      ${field('Fokus Observasi yang Disepakati', pra.aspek_fokus ? (pra.aspek_fokus.replace(/_/g,'-') + (pra.fokus_observasi ? ' — ' + pra.fokus_observasi : '')) : pra.fokus_observasi)}
+      ${field('Dokumen Pendukung', pra.dokumen_url)}
+      ${field('Kesiapan Guru', pra.kesiapan_guru ? pra.kesiapan_guru.replace(/_/g,' ') : '')}
+
+      <h2>Tahap 2 — Observasi</h2>
+      ${field('Catatan Aktivitas Guru', obs.catatan_aktivitas_guru)}
+      ${field('Catatan Aktivitas Murid', obs.catatan_aktivitas_murid)}
+
+      <div class="field">
+        <div class="field-label">Momen Pembelajaran Mendalam yang Teramati</div>
+        ${checklist(momenList, momenPM)}
+      </div>
+
+      ${field('Integrasi Koding / AI', obs.catatan_kka)}
+      ${field('Link Video/Foto', obs.video_url)}
+      ${field('Durasi Observasi', obs.durasi_menit ? obs.durasi_menit + ' menit' : '')}
+
+      <h2>Tahap 3 — Pasca-Observasi (Refleksi)</h2>
+
+      ${field('1. Ketercapaian Tujuan Pembelajaran', pasca.refleksi_ketercapaian_tujuan)}
+      <div style="margin-left:0; margin-bottom:10px; font-size:9.5pt; color:#64748b; font-style:italic">
+        Respons supervisor: ${esc((respon.refleksi_ketercapaian_tujuan || '—').replace(/_/g,' '))}
+      </div>
+
+      ${field('2. Aspek Fokus Observasi', pasca.refleksi_aspek_fokus)}
+      <div style="margin-left:0; margin-bottom:10px; font-size:9.5pt; color:#64748b; font-style:italic">
+        Respons supervisor: ${esc((respon.refleksi_aspek_fokus || '—').replace(/_/g,' '))}
+      </div>
+
+      ${field('3. Bagian yang Berhasil', pasca.refleksi_keberhasilan)}
+      <div style="margin-left:0; margin-bottom:10px; font-size:9.5pt; color:#64748b; font-style:italic">
+        Respons supervisor: ${esc((respon.refleksi_keberhasilan || '—').replace(/_/g,' '))}
+      </div>
+
+      ${field('4. Tantangan yang Dihadapi', pasca.refleksi_tantangan)}
+      <div style="margin-left:0; margin-bottom:10px; font-size:9.5pt; color:#64748b; font-style:italic">
+        Respons supervisor: ${esc((respon.refleksi_tantangan || '—').replace(/_/g,' '))}
+      </div>
+
+      ${field('5. Solusi yang Diusulkan', pasca.refleksi_solusi)}
+      <div style="margin-left:0; margin-bottom:10px; font-size:9.5pt; color:#64748b; font-style:italic">
+        Respons supervisor: ${esc((respon.refleksi_solusi || '—').replace(/_/g,' '))}
+      </div>
+
+      ${field('6. Tahapan Penerapan', pasca.refleksi_tahapan)}
+      <div style="margin-left:0; margin-bottom:10px; font-size:9.5pt; color:#64748b; font-style:italic">
+        Respons supervisor: ${esc((respon.refleksi_tahapan || '—').replace(/_/g,' '))}
+      </div>
+
+      ${field('7. Komitmen Waktu Penerapan', pasca.refleksi_komitmen_waktu)}
+      <div style="margin-left:0; margin-bottom:10px; font-size:9.5pt; color:#64748b; font-style:italic">
+        Respons supervisor: ${esc((respon.refleksi_komitmen_waktu || '—').replace(/_/g,' '))}
+      </div>
+
+      <h2>Rencana Tindak Lanjut (RTL)</h2>
+      <table class="info" style="border-collapse:collapse">
+        <tr>
+          <td style="width:140px; font-weight:600">Rencana Aksi</td><td>:</td>
+          <td>${esc(pasca.rtl_aksi || '—')}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">Waktu Pelaksanaan</td><td>:</td>
+          <td>${esc(pasca.rtl_waktu || '—')}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">Dukungan</td><td>:</td>
+          <td>${esc(pasca.rtl_dukungan || '—')}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">Indikator Keberhasilan</td><td>:</td>
+          <td>${esc(pasca.rtl_indikator || '—')}</td>
+        </tr>
+      </table>
+
+      ${pasca.link_dokumentasi ? field('Link Dokumentasi', pasca.link_dokumentasi) : ''}
+
+      <div class="ttd-grid">
+        <div class="ttd-box">
+          <div>Kepala Sekolah / Supervisor</div>
+          <div class="ttd-space">(tanda tangan)</div>
+          <div class="ttd-name">${esc(pasca.ttd_supervisor_nama || '...................................')}</div>
+        </div>
+        <div class="ttd-box">
+          <div>Guru yang Disupervisi</div>
+          <div class="ttd-space">(tanda tangan)</div>
+          <div class="ttd-name">${esc(guru.nama || '...................................')}</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Dicetak dari SISPA — Sistem Informasi Supervisi Pendidikan Akademik<br>
+        ${new Date().toLocaleString('id-ID')} · ID: ${esc(s.id)}
+      </div>`;
+
+    document.getElementById('doc').innerHTML = doc;
+  }
+
+  load();
+</script>
+</body>
+</html>
