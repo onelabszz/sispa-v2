@@ -655,9 +655,11 @@
     });
 
     if (isReadonly) {
-      el('btnCetakPdf').addEventListener('click', () => showToast('Fitur cetak akan tersedia di sprint berikutnya', 'info'));
-      return;
-    }
+  el('btnCetakPdf').addEventListener('click', () => {
+    window.open('/sispa-v2/ks/cetak-supervisi.html?id=' + supervisiData.id, '_blank');
+  });
+  return;
+}
 
     el('btnSaveDraft').addEventListener('click', () => savePasca(false));
     el('btnSelesai').addEventListener('click', () => savePasca(true));
