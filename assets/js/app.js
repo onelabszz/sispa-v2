@@ -40,7 +40,9 @@ const SISPA_NAV = {
     { section: 'Monitoring' },
     { key: 'profil-guru', href: '/sispa-v2/pengawas/profil-guru.html', label: 'Profil Guru', icon: 'compass' },
     { key: 'program', href: '/sispa-v2/pengawas/program.html', label: 'Program Supervisi', icon: 'clipboard-list' },
-    { key: 'supervisi', href: '/sispa-v2/pengawas/supervisi.html', label: 'Semua Supervisi', icon: 'clipboard-check' }
+    { key: 'supervisi', href: '/sispa-v2/pengawas/supervisi.html', label: 'Semua Supervisi', icon: 'clipboard-check' },
+    { section: 'Evaluasi' },
+    { key: 'evaluasi', href: '/sispa-v2/pengawas/evaluasi-list.html', label: 'Evaluasi Kinerja KS', icon: 'gauge' }
   ],
   ks: [
     { section: 'Utama' },
