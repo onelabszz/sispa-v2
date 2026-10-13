@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Cetak Evaluasi Kinerja KS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  body { background: #f1f5f9; padding: 24px; font-family: 'Inter', sans-serif; }
+  .toolbar { position: fixed; top: 16px; right: 16px; z-index: 100; display: flex; gap: 8px; }
+  .doc { background: white; max-width: 210mm; margin: 0 auto; padding: 15mm 12mm; box-shadow: 0 4px 24px rgba(15,23,42,0.08); color: #0f172a; font-size: 10pt; line-height: 1.5; }
+  .doc h1 { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 4px; }
+  .doc h2 { font-size: 11pt; font-weight: 700; margin: 16px 0 6px; padding-bottom: 3px; border-bottom: 1.5px solid #0f172a; text-transform: uppercase; }
+  .doc .header-sub { text-align: center; font-size: 9.5pt; color: #475569; margin-bottom: 16px; }
+
+  .doc table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9.5pt; }
+  .doc table.info td { padding: 3px 5px; vertical-align: top; }
+  .doc table.info td:first-child { width: 130px; color: #475569; }
+  .doc table.info td:nth-child(2) { width: 12px; }
+
+  .doc table.indikator { font-size: 9pt; }
+  .doc table.indikator th { background: #f1f5f9; padding: 5px 6px; text-align: left; border: 1px solid #cbd5e1; font-weight: 600; }
+  .doc table.indikator td { padding: 4px 6px; border: 1px solid #e2e8f0; vertical-align: top; }
+  .doc table.indikator td.kode { width: 36px; text-align: center; font-weight: 600; color: #4338ca; }
+  .doc table.indikator td.skor { width: 50px; text-align: center; font-weight: 700; font-size: 10pt; }
+  .doc table.indikator td.catatan { font-size: 8.5pt; color: #475569; font-style: italic; }
+
+  .skor-0 { color: #dc2626; }
+  .skor-1 { color: #f59e0b; }
+  .skor-2 { color: #0ea5e9; }
+  .skor-3 { color: #16a34a; }
+
+  .komponen-title {
+    background: #eef2ff; padding: 5px 8px; margin: 12px 0 0;
+    font-weight: 700; font-size: 10pt; color: #312e81;
+    border-left: 3px solid #4f46e5;
+  }
+
+  .ringkasan-box {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    margin: 12px 0; padding: 12px; background: #f8fafc; border-radius: 8px;
+  }
+  .ringkasan-item { text-align: center; }
+  .ringkasan-item .label { font-size: 8pt; color: #64748b; }
+  .ringkasan-item .value { font-size: 14pt; font-weight: 700; margin-top: 2px; }
+
+  .ttd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+  .ttd-box { text-align: center; font-size: 9.5pt; }
+  .ttd-space { height: 55px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 8.5pt; font-style: italic; }
+  .ttd-name { margin-top: 4px; font-weight: 600; border-top: 1px solid #0f172a; padding-top: 3px; }
+
+  .footer { margin-top: 24px; padding-top: 10px; border-top: 1px dashed #cbd5e1; text-align: center; font-size: 8pt; color: #94a3b8; }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .toolbar { display: none; }
+    .doc { box-shadow: none; padding: 0; max-width: 100%; }
+    @page { margin: 12mm; size: A4; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <a href="javascript:window.close()" class="btn btn-secondary"><span>✕ Tutup</span></a>
+  <button onclick="window.print()" class="btn btn-primary"><span>🖨️ Cetak / Simpan PDF</span></button>
+</div>
+
+<div id="loading" style="text-align:center; padding:80px 20px; color:#64748b">
+  <div>Memuat data evaluasi...</div>
+</div>
+
+<div id="doc" class="doc" style="display:none"></div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/api/evaluasi-ks.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function fmtTgl(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  async function load() {
+    if (!id) {
+      document.getElementById('loading').innerHTML = '<div style="color:#dc2626">ID evaluasi tidak ditemukan.</div>';
+      return;
+    }
+
+    try {
+      const session = await sb.auth.getSession();
+      if (!session.data.session) {
+        document.getElementById('loading').innerHTML = '<div style="color:#dc2626">Anda belum login.</div>';
+        return;
+      }
+
+      const res = await EvaluasiKsAPI.get(id);
+      renderDoc(res);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('doc').style.display = 'block';
+      setTimeout(() => window.print(), 500);
+    } catch (err) {
+      document.getElementById('loading').innerHTML = '<div style="color:#dc2626">Gagal: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  function renderDoc(res) {
+    const h = res.header;
+    const detail = res.detail;
+    const instrumen = res.instrumen;
+
+    const detailByKode = {};
+    detail.forEach(d => detailByKode[d.kode] = d);
+
+    const renderKomponen = (kompKey) => {
+      const komp = instrumen[kompKey];
+      const maxKomp = komp.max;
+      let sumSkor = 0;
+
+      const rows = komp.indikator.map((ind, i) => {
+        const d = detailByKode[ind.kode] || { skor: 0 };
+        sumSkor += d.skor;
+        return `
+          <tr>
+            <td class="kode">${ind.kode}</td>
+            <td>${esc(ind.teks)}${ind.tahap ? ` <em style="color:#64748b; font-size:8.5pt">(${ind.tahap})</em>` : ''}</td>
+            <td class="skor skor-${d.skor}">${d.skor}</td>
+            <td class="catatan">${esc(d.catatan || '')}</td>
+          </tr>`;
+      }).join('');
+
+      return `
+        <div class="komponen-title">${esc(komp.label)} — Skor: ${sumSkor} / ${maxKomp}</div>
+        <table class="indikator">
+          <thead>
+            <tr>
+              <th style="width:36px">Kode</th>
+              <th>Indikator</th>
+              <th style="width:50px; text-align:center">Skor</th>
+              <th style="width:30%">Catatan</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    };
+
+    const predikatColor = {
+      'Sangat Baik': '#16a34a',
+      'Baik': '#0ea5e9',
+      'Cukup': '#f59e0b',
+      'Kurang': '#dc2626'
+    };
+
+    const sumberData = (() => {
+      try { return JSON.parse(h.sumber_data || '{}'); } catch(e) { return {}; }
+    })();
+    const sumberLabel = [];
+    if (sumberData.observasi) sumberLabel.push('Observasi kelas');
+    if (sumberData.dokumen) sumberLabel.push('Dokumen');
+    if (sumberData.video) sumberLabel.push('Video');
+
+    document.getElementById('doc').innerHTML = `
+      <h1>INSTRUMEN EVALUASI KINERJA KEPALA SEKOLAH</h1>
+      <div class="header-sub">
+        ${esc(h.nama_sekolah || '')} — NPSN ${esc(h.npsn_sekolah)}<br>
+        Periode ${esc(h.periode)} · ${fmtTgl(h.tanggal)}
+      </div>
+
+      <h2>Identitas</h2>
+      <table class="info">
+        <tr><td>Nama KS yang Dinilai</td><td>:</td><td><strong>${esc(h.nama_ks || '—')}</strong></td></tr>
+        <tr><td>NIP</td><td>:</td><td>${esc((h.ks && h.ks.nip) || '—')}</td></tr>
+        <tr><td>Jabatan</td><td>:</td><td>${esc((h.ks && h.ks.jabatan) || 'Kepala Sekolah')}</td></tr>
+        <tr><td>Nama Sekolah</td><td>:</td><td>${esc(h.nama_sekolah || '—')}</td></tr>
+        <tr><td>Nama Pengawas</td><td>:</td><td>${esc(h.nama_pengawas || '—')}</td></tr>
+        <tr><td>NIP Pengawas</td><td>:</td><td>${esc((h.pengawas && h.pengawas.nip) || '—')}</td></tr>
+        <tr><td>Sumber Data</td><td>:</td><td>${esc(sumberLabel.join(', ') || '—')}</td></tr>
+        ${h.link_dokumentasi ? `<tr><td>Link Dokumentasi</td><td>:</td><td>${esc(h.link_dokumentasi)}</td></tr>` : ''}
+      </table>
+
+      <h2>A. Perencanaan Pembelajaran</h2>
+      ${renderKomponen('rencana').replace(/<div class="komponen-title">.*?<\/div>/, '')}
+      ${h.catatan_rencana ? `<p style="font-size:9.5pt; margin:6px 0"><strong>Catatan:</strong> ${esc(h.catatan_rencana)}</p>` : ''}
+
+      <h2>B. Pelaksanaan Pembelajaran</h2>
+      ${renderKomponen('pelaksanaan').replace(/<div class="komponen-title">.*?<\/div>/, '')}
+      ${h.catatan_pelaksanaan ? `<p style="font-size:9.5pt; margin:6px 0"><strong>Catatan:</strong> ${esc(h.catatan_pelaksanaan)}</p>` : ''}
+
+      <h2>C. Asesmen Pembelajaran</h2>
+      ${renderKomponen('asesmen').replace(/<div class="komponen-title">.*?<\/div>/, '')}
+      ${h.catatan_asesmen ? `<p style="font-size:9.5pt; margin:6px 0"><strong>Catatan:</strong> ${esc(h.catatan_asesmen)}</p>` : ''}
+
+      <h2>Rekap Capaian</h2>
+      <div class="ringkasan-box">
+        <div class="ringkasan-item">
+          <div class="label">Rencana</div>
+          <div class="value">${h.skor_rencana}<span style="font-size:10pt; color:#94a3b8; font-weight:400">/27</span></div>
+        </div>
+        <div class="ringkasan-item">
+          <div class="label">Pelaksanaan</div>
+          <div class="value">${h.skor_pelaksanaan}<span style="font-size:10pt; color:#94a3b8; font-weight:400">/42</span></div>
+        </div>
+        <div class="ringkasan-item">
+          <div class="label">Asesmen</div>
+          <div class="value">${h.skor_asesmen}<span style="font-size:10pt; color:#94a3b8; font-weight:400">/21</span></div>
+        </div>
+        <div class="ringkasan-item">
+          <div class="label">Total</div>
+          <div class="value">${h.skor_total}<span style="font-size:10pt; color:#94a3b8; font-weight:400">/90</span></div>
+        </div>
+      </div>
+
+      <table class="info" style="margin-top:8px">
+        <tr><td>Persentase Capaian</td><td>:</td><td><strong>${Number(h.persen_capaian).toFixed(2)}%</strong></td></tr>
+        <tr><td>Predikat</td><td>:</td><td><strong style="color:${predikatColor[h.predikat] || '#0f172a'}">${esc(h.predikat || '—')}</strong></td></tr>
+      </table>
+
+      ${h.rtl ? `
+        <h2>Rencana Tindak Lanjut</h2>
+        <p style="font-size:10pt; white-space:pre-wrap">${esc(h.rtl)}</p>
+      ` : ''}
+
+      <div class="ttd-grid">
+        <div class="ttd-box">
+          <div>Pengawas,</div>
+          <div class="ttd-space">(tanda tangan)</div>
+          <div class="ttd-name">${esc(h.nama_pengawas || '...................................')}</div>
+          <div style="font-size:8.5pt; color:#64748b; margin-top:2px">NIP. ${esc((h.pengawas && h.pengawas.nip) || '..............................')}</div>
+        </div>
+        <div class="ttd-box">
+          <div>Kepala Sekolah,</div>
+          <div class="ttd-space">(tanda tangan)</div>
+          <div class="ttd-name">${esc(h.nama_ks || '...................................')}</div>
+          <div style="font-size:8.5pt; color:#64748b; margin-top:2px">NIP. ${esc((h.ks && h.ks.nip) || '..............................')}</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Dicetak dari SISPA — Sistem Informasi Supervisi Pendidikan Akademik<br>
+        ${new Date().toLocaleString('id-ID')} · ID: ${esc(h.id)}
+      </div>
+    `;
+  }
+
+  load();
+</script>
+</body>
+</html>
