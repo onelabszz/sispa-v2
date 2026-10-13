@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Form Evaluasi Kinerja KS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .indikator-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 220px;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--slate-100);
+    align-items: start;
+  }
+  .indikator-row:last-child { border-bottom: none; }
+  .indikator-row:hover { background: var(--slate-50); }
+  .indikator-kode {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--brand-50); color: var(--brand-700);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.75rem;
+  }
+  .indikator-teks {
+    font-size: 0.875rem; color: var(--slate-800); line-height: 1.5;
+  }
+  .skor-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem;
+  }
+  .skor-btn {
+    padding: 0.4rem 0.3rem; border-radius: 6px;
+    border: 1.5px solid var(--slate-200); background: white;
+    cursor: pointer; font-size: 0.75rem; font-weight: 600;
+    transition: all .12s; color: var(--slate-600);
+    text-align: center;
+  }
+  .skor-btn:hover { border-color: var(--brand-500); color: var(--brand-700); }
+  .skor-btn.active { background: var(--brand-600); color: white; border-color: var(--brand-600); }
+  .skor-btn.active.s0 { background: #dc2626; border-color: #dc2626; }
+  .skor-btn.active.s1 { background: #f59e0b; border-color: #f59e0b; }
+  .skor-btn.active.s2 { background: #0ea5e9; border-color: #0ea5e9; }
+  .skor-btn.active.s3 { background: #16a34a; border-color: #16a34a; }
+
+  .komponen-header {
+    background: var(--slate-100);
+    padding: 0.75rem 1rem;
+    font-weight: 700; font-size: 0.875rem;
+    color: var(--slate-800);
+    border-bottom: 1px solid var(--slate-200);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .komponen-badge {
+    font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+    background: var(--brand-100); color: var(--brand-700); font-weight: 600;
+  }
+
+  .sticky-summary {
+    position: sticky; top: 80px;
+  }
+</style>
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 id="pageTitle" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Evaluasi Kinerja KS</h1>
+    <p id="pageSubtitle" style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Isi 30 indikator dari 3 komponen</p>
+  </div>
+  <a href="/sispa-v2/pengawas/evaluasi-list.html" class="btn btn-ghost">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+    <span>Kembali</span>
+  </a>
+</div>
+
+<div id="readonlyBanner" class="hidden" style="margin-bottom:1rem; padding:0.75rem; border-radius:8px; background:#dcfce7; border:1px solid #86efac; font-size:0.875rem; color:#166534">
+  <strong>Evaluasi sudah final.</strong> Data tidak dapat diubah.
+</div>
+
+<!-- Info KS -->
+<div id="infoCard" class="card" style="margin-bottom:1.5rem; display:none">
+  <div class="card-body" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:1rem">
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">KS yang Dinilai</div>
+      <div id="infoKs" style="font-weight:600">—</div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Sekolah</div>
+      <div id="infoSekolah" style="font-weight:600">—</div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Periode</div>
+      <div id="infoPeriode" class="text-mono" style="font-weight:600">—</div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem; color:var(--slate-500)">Tanggal</div>
+      <div id="infoTanggal" style="font-weight:600">—</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 320px; gap:1.5rem" id="mainGrid">
+
+  <!-- SISI KIRI: Form -->
+  <div>
+
+    <!-- Setup awal (hanya saat create) -->
+    <div id="setupCard" class="card" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <div style="display:flex; align-items:center; gap:0.5rem">
+          <i data-lucide="settings-2" class="w-4 h-4" style="color:var(--slate-500)"></i>
+          <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Data Evaluasi</h2>
+        </div>
+      </div>
+      <div class="card-body" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+        <div style="grid-column:span 2">
+          <label class="label" for="fSekolah">Sekolah <span style="color:var(--danger)">*</span></label>
+          <select id="fSekolah" class="select">
+            <option value="">— Pilih Sekolah —</option>
+          </select>
+        </div>
+        <div style="grid-column:span 2">
+          <label class="label" for="fKs">Kepala Sekolah yang Dinilai <span style="color:var(--danger)">*</span></label>
+          <select id="fKs" class="select" disabled>
+            <option value="">— Pilih sekolah terlebih dahulu —</option>
+          </select>
+        </div>
+        <div>
+          <label class="label" for="fPeriode">Periode <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="fPeriode" class="input text-mono" placeholder="2025/2026-Ganjil" />
+        </div>
+        <div>
+          <label class="label" for="fTanggal">Tanggal Evaluasi <span style="color:var(--danger)">*</span></label>
+          <input type="date" id="fTanggal" class="input" />
+        </div>
+        <div style="grid-column:span 2">
+          <label class="label">Sumber Data</label>
+          <div style="display:flex; gap:1rem; flex-wrap:wrap; padding-top:0.35rem">
+            <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer">
+              <input type="checkbox" id="sdObservasi" /> Observasi kelas
+            </label>
+            <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer">
+              <input type="checkbox" id="sdDokumen" /> Dokumen
+            </label>
+            <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer">
+              <input type="checkbox" id="sdVideo" /> Video
+            </label>
+          </div>
+        </div>
+        <div style="grid-column:span 2">
+          <label class="label" for="fLinkDok">Link Dokumentasi (opsional)</label>
+          <input type="url" id="fLinkDok" class="input" placeholder="https://drive.google.com/..." />
+        </div>
+      </div>
+    </div>
+
+    <!-- Indikator per komponen -->
+    <div id="instrumenContainer"></div>
+
+    <!-- Catatan & RTL -->
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-header">
+        <div style="display:flex; align-items:center; gap:0.5rem">
+          <i data-lucide="message-square" class="w-4 h-4" style="color:var(--slate-500)"></i>
+          <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Catatan & RTL</h2>
+        </div>
+      </div>
+      <div class="card-body" style="display:flex; flex-direction:column; gap:1rem">
+        <div>
+          <label class="label" for="fCatRencana">Catatan Komponen Rencana</label>
+          <textarea id="fCatRencana" class="textarea" rows="2" placeholder="Catatan tentang perencanaan pembelajaran..."></textarea>
+        </div>
+        <div>
+          <label class="label" for="fCatPelaksanaan">Catatan Komponen Pelaksanaan</label>
+          <textarea id="fCatPelaksanaan" class="textarea" rows="2" placeholder="Catatan tentang pelaksanaan pembelajaran..."></textarea>
+        </div>
+        <div>
+          <label class="label" for="fCatAsesmen">Catatan Komponen Asesmen</label>
+          <textarea id="fCatAsesmen" class="textarea" rows="2" placeholder="Catatan tentang asesmen..."></textarea>
+        </div>
+        <div>
+          <label class="label" for="fRtl">Rencana Tindak Lanjut</label>
+          <textarea id="fRtl" class="textarea" rows="3" placeholder="Rekomendasi & rencana pembinaan..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer actions -->
+    <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem; margin-bottom:3rem" id="actionBar">
+      <button id="btnSaveDraft" class="btn btn-secondary">
+        <i data-lucide="save" class="w-4 h-4"></i>
+        <span>Simpan Draft</span>
+      </button>
+      <button id="btnFinal" class="btn btn-primary">
+        <i data-lucide="check-circle" class="w-4 h-4"></i>
+        <span>Finalisasi</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- SISI KANAN: Ringkasan -->
+  <aside class="sticky-summary">
+    <div class="card">
+      <div class="card-header">
+        <div style="display:flex; align-items:center; gap:0.5rem">
+          <i data-lucide="gauge" class="w-4 h-4" style="color:var(--slate-500)"></i>
+          <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Ringkasan Skor</h2>
+        </div>
+      </div>
+      <div class="card-body" id="ringkasanBox">
+        <div style="text-align:center; color:var(--slate-400); padding:1rem">Belum ada skor</div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/evaluasi-ks.js"></script>
+<script>
+  let user = null;
+  let evalData = null;      // header
+  let detailMap = {};       // kode → { skor, catatan }
+  let isReadonly = false;
+  let isEdit = false;
+  let sekolahList = [];
+
+  const params = new URLSearchParams(window.location.search);
+  const evalId = params.get('id');
+
+  initPage('pengawas', 'evaluasi', async (u) => {
+    user = u;
+    await loadSekolah();
+
+    if (evalId) {
+      await loadExisting(evalId);
+    } else {
+      initNew();
+    }
+  });
+
+  async function loadSekolah() {
+    const { data, error } = await sb
+      .from('sekolah')
+      .select('npsn, nama')
+      .eq('status', 'aktif')
+      .order('nama');
+    if (!error) sekolahList = data || [];
+    const sel = document.getElementById('fSekolah');
+    sekolahList.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.npsn;
+      o.textContent = s.nama;
+      sel.appendChild(o);
+    });
+  }
+
+  function getPeriodeDefault() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    return (m >= 7) ? (y + '/' + (y+1) + '-Ganjil') : ((y-1) + '/' + y + '-Genap');
+  }
+
+  function initNew() {
+    isEdit = false;
+    document.getElementById('fPeriode').value = getPeriodeDefault();
+    document.getElementById('fTanggal').value = new Date().toISOString().slice(0, 10);
+    renderInstrumen();
+    bindSetup();
+    updateSummary();
+  }
+
+  async function loadExisting(id) {
+    await withLoading('Memuat evaluasi...', async () => {
+      try {
+        const res = await EvaluasiKsAPI.get(id);
+        evalData = res.header;
+        isReadonly = evalData.status === 'final';
+        isEdit = true;
+
+        // Isi setup fields
+        document.getElementById('fSekolah').value = evalData.npsn_sekolah;
+        await loadKsBySekolah(evalData.npsn_sekolah, true);
+        document.getElementById('fKs').value = evalData.ks_id;
+        document.getElementById('fPeriode').value = evalData.periode;
+        document.getElementById('fTanggal').value = evalData.tanggal;
+
+        // Sumber data
+        let sd = {};
+        try { sd = JSON.parse(evalData.sumber_data || '{}'); } catch(e) {}
+        document.getElementById('sdObservasi').checked = !!sd.observasi;
+        document.getElementById('sdDokumen').checked = !!sd.dokumen;
+        document.getElementById('sdVideo').checked = !!sd.video;
+        document.getElementById('fLinkDok').value = evalData.link_dokumentasi || '';
+
+        // Detail
+        detailMap = {};
+        res.detail.forEach(d => {
+          detailMap[d.kode] = { skor: d.skor, catatan: d.catatan || '' };
+        });
+
+        // Catatan
+        document.getElementById('fCatRencana').value = evalData.catatan_rencana || '';
+        document.getElementById('fCatPelaksanaan').value = evalData.catatan_pelaksanaan || '';
+        document.getElementById('fCatAsesmen').value = evalData.catatan_asesmen || '';
+        document.getElementById('fRtl').value = evalData.rtl || '';
+
+        // Info card
+        renderInfoCard();
+
+        if (isReadonly) {
+          document.getElementById('readonlyBanner').classList.remove('hidden');
+          document.querySelectorAll('#setupCard input, #setupCard select, #setupCard textarea, .skor-btn, .indikator-catatan').forEach(el => {
+            el.disabled = true;
+            el.style.pointerEvents = 'none';
+          });
+          document.getElementById('actionBar').style.display = 'none';
+        } else {
+          bindSetup();
+        }
+
+        renderInstrumen();
+        updateSummary();
+        refreshIcons();
+      } catch (err) {
+        showToast('Gagal memuat: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderInfoCard() {
+    document.getElementById('infoCard').style.display = 'block';
+    document.getElementById('infoKs').textContent = evalData.nama_ks || '—';
+    document.getElementById('infoSekolah').textContent = evalData.nama_sekolah || '—';
+    document.getElementById('infoPeriode').textContent = evalData.periode || '—';
+    document.getElementById('infoTanggal').textContent = formatTanggal(evalData.tanggal);
+    document.getElementById('setupCard').style.display = 'none';
+  }
+
+  function bindSetup() {
+    const selSek = document.getElementById('fSekolah');
+    selSek.addEventListener('change', async () => {
+      const npsn = selSek.value;
+      if (!npsn) return;
+      await loadKsBySekolah(npsn);
+    });
+  }
+
+  async function loadKsBySekolah(npsn, keepValue) {
+    const sel = document.getElementById('fKs');
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">Memuat...</option>';
+
+    const { data, error } = await sb
+      .from('profiles')
+      .select('id, nama, email')
+      .eq('role', 'ks')
+      .eq('npsn', npsn)
+      .eq('status', 'aktif');
+
+    if (error) {
+      sel.innerHTML = '<option value="">Error memuat</option>';
+      return;
+    }
+
+    sel.innerHTML = '<option value="">— Pilih KS —</option>';
+    if (!data || data.length === 0) {
+      sel.innerHTML = '<option value="">Tidak ada KS aktif di sekolah ini</option>';
+      return;
+    }
+    data.forEach(ks => {
+      const o = document.createElement('option');
+      o.value = ks.id;
+      o.textContent = ks.nama || ks.email;
+      sel.appendChild(o);
+    });
+    sel.disabled = false;
+    if (keepValue) sel.value = evalData.ks_id;
+  }
+
+  function renderInstrumen() {
+    const instrumen = EvaluasiKsAPI.getInstrumen();
+    const container = document.getElementById('instrumenContainer');
+    container.innerHTML = '';
+
+    ['rencana', 'pelaksanaan', 'asesmen'].forEach(kompKey => {
+      const komp = instrumen[kompKey];
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.marginBottom = '1.5rem';
+
+      const labelSkor = EvaluasiKsAPI.getLabelSkor(kompKey);
+
+      card.innerHTML = `
+        <div class="komponen-header">
+          <span>${komp.label}</span>
+          <span class="komponen-badge">Maks ${komp.max} poin</span>
+        </div>
+        <div style="padding:0">
+          ${komp.indikator.map((ind, idx) => `
+            <div class="indikator-row" data-kode="${ind.kode}">
+              <div>
+                <div class="indikator-kode">${ind.kode}</div>
+              </div>
+              <div>
+                <div class="indikator-teks">
+                  ${ind.tahap ? `<span style="font-size:0.7rem; padding:0.1rem 0.4rem; background:var(--slate-100); border-radius:4px; margin-right:0.4rem; text-transform:capitalize">${ind.tahap}</span>` : ''}
+                  ${escapeHtml(ind.teks)}
+                </div>
+                <textarea class="textarea indikator-catatan" data-catatan-kode="${ind.kode}" rows="1"
+                  style="margin-top:0.5rem; font-size:0.75rem"
+                  placeholder="Catatan/bukti (opsional)">${escapeHtml((detailMap[ind.kode] && detailMap[ind.kode].catatan) || '')}</textarea>
+              </div>
+              <div>
+                <div style="font-size:0.7rem; color:var(--slate-500); margin-bottom:0.35rem; font-weight:600">Skor (0–3)</div>
+                <div class="skor-grid" data-skor-kode="${ind.kode}">
+                  ${[0,1,2,3].map(s => {
+                    const active = detailMap[ind.kode] && detailMap[ind.kode].skor === s ? 'active' : '';
+                    return `<button type="button" class="skor-btn s${s} ${active}" data-skor="${s}" title="${labelSkor[s] || ''}">${s}</button>`;
+                  }).join('')}
+                </div>
+                <div style="font-size:0.65rem; color:var(--slate-500); margin-top:0.35rem; min-height:1.8em" data-label-kode="${ind.kode}">
+                  ${labelSkor[detailMap[ind.kode] ? detailMap[ind.kode].skor : -1] || 'Belum dipilih'}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      container.appendChild(card);
+
+      // Bind skor buttons
+      card.querySelectorAll('.skor-grid').forEach(grid => {
+        const kode = grid.dataset.skorKode;
+        const labelEl = card.querySelector(`[data-label-kode="${kode}"]`);
+        grid.querySelectorAll('.skor-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (isReadonly) return;
+            const val = parseInt(btn.dataset.skor);
+            // Reset active
+            grid.querySelectorAll('.skor-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Update map
+            if (!detailMap[kode]) detailMap[kode] = { skor: null, catatan: '' };
+            detailMap[kode].skor = val;
+            // Update label
+            const labels = EvaluasiKsAPI.getLabelSkor(kompKey);
+            labelEl.textContent = labels[val];
+            updateSummary();
+          });
+        });
+      });
+
+      // Bind catatan
+      card.querySelectorAll('.indikator-catatan').forEach(ta => {
+        const kode = ta.dataset.catatanKode;
+        ta.addEventListener('input', () => {
+          if (!detailMap[kode]) detailMap[kode] = { skor: null, catatan: '' };
+          detailMap[kode].catatan = ta.value;
+        });
+      });
+    });
+  }
+
+  function updateSummary() {
+    const instrumen = EvaluasiKsAPI.getInstrumen();
+    const box = document.getElementById('ringkasanBox');
+
+    // Hitung per komponen
+    const hitungKomp = (kompKey) => {
+      return instrumen[kompKey].indikator.reduce((sum, ind) => {
+        const d = detailMap[ind.kode];
+        return sum + (d && d.skor != null ? d.skor : 0);
+      }, 0);
+    };
+
+    const skorR = hitungKomp('rencana');
+    const skorP = hitungKomp('pelaksanaan');
+    const skorA = hitungKomp('asesmen');
+
+    const total = skorR + skorP + skorA;
+    const maxTotal = 90;
+    const persen = (total / maxTotal) * 100;
+
+    let predikat = 'Kurang';
+    if (persen >= 91) predikat = 'Sangat Baik';
+    else if (persen >= 80) predikat = 'Baik';
+    else if (persen >= 71) predikat = 'Cukup';
+
+    const predikatColor = {
+      'Sangat Baik': '#16a34a',
+      'Baik': '#0ea5e9',
+      'Cukup': '#f59e0b',
+      'Kurang': '#dc2626'
+    };
+
+    box.innerHTML = `
+      <div style="text-align:center; padding:0.5rem 0 1rem">
+        <div style="font-size:0.75rem; color:var(--slate-500)">Total Skor</div>
+        <div style="font-size:2.25rem; font-weight:800; line-height:1">${total}<span style="font-size:1.25rem; color:var(--slate-400); font-weight:400">/90</span></div>
+        <div style="font-size:0.85rem; color:var(--slate-600); margin-top:0.35rem">${persen.toFixed(1)}%</div>
+      </div>
+
+      <div style="padding:0.75rem; border-radius:8px; background:${predikatColor[predikat]}15; border:1px solid ${predikatColor[predikat]}30; text-align:center; margin-bottom:1rem">
+        <div style="font-size:0.75rem; color:var(--slate-500)">Predikat</div>
+        <div style="font-weight:700; color:${predikatColor[predikat]}; font-size:1.05rem">${predikat}</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.4rem; font-size:0.8rem">
+        <div style="display:flex; justify-content:space-between; padding:0.4rem 0.6rem; background:var(--slate-50); border-radius:6px">
+          <span>Rencana</span><strong>${skorR}/27</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.4rem 0.6rem; background:var(--slate-50); border-radius:6px">
+          <span>Pelaksanaan</span><strong>${skorP}/42</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.4rem 0.6rem; background:var(--slate-50); border-radius:6px">
+          <span>Asesmen</span><strong>${skorA}/21</strong>
+        </div>
+      </div>
+    `;
+  }
+
+  // ===== SAVE =====
+  function collectPayload(status) {
+    const instrumen = EvaluasiKsAPI.getInstrumen();
+    const detail = [];
+    ['rencana', 'pelaksanaan', 'asesmen'].forEach(kompKey => {
+      instrumen[kompKey].indikator.forEach(ind => {
+        const d = detailMap[ind.kode] || {};
+        detail.push({
+          komponen: kompKey,
+          kode: ind.kode,
+          skor: d.skor != null ? d.skor : 0,
+          catatan: d.catatan || null
+        });
+      });
+    });
+
+    const sumberData = {
+      observasi: document.getElementById('sdObservasi').checked,
+      dokumen: document.getElementById('sdDokumen').checked,
+      video: document.getElementById('sdVideo').checked
+    };
+
+    return {
+      id: evalId || null,
+      npsn_sekolah: document.getElementById('fSekolah').value,
+      ks_id: document.getElementById('fKs').value,
+      periode: document.getElementById('fPeriode').value.trim(),
+      tanggal: document.getElementById('fTanggal').value,
+      status: status,
+      detail: detail,
+      catatan_rencana: document.getElementById('fCatRencana').value.trim(),
+      catatan_pelaksanaan: document.getElementById('fCatPelaksanaan').value.trim(),
+      catatan_asesmen: document.getElementById('fCatAsesmen').value.trim(),
+      rtl: document.getElementById('fRtl').value.trim(),
+      sumber_data: sumberData,
+      link_dokumentasi: document.getElementById('fLinkDok').value.trim()
+    };
+  }
+
+  document.getElementById('btnSaveDraft').addEventListener('click', () => doSave('draft'));
+  document.getElementById('btnFinal').addEventListener('click', async () => {
+    const ok = await confirmAction(
+      'Finalisasi evaluasi?',
+      'Setelah final, data tidak dapat diubah lagi.',
+      { confirmText: 'Ya, finalisasi' }
+    );
+    if (!ok) return;
+    doSave('final');
+  });
+
+  async function doSave(status) {
+    const btn = status === 'final' ? document.getElementById('btnFinal') : document.getElementById('btnSaveDraft');
+    const payload = collectPayload(status);
+
+    if (!payload.npsn_sekolah) return showToast('Sekolah wajib dipilih', 'error');
+    if (!payload.ks_id) return showToast('KS wajib dipilih', 'error');
+    if (!payload.tanggal) return showToast('Tanggal wajib diisi', 'error');
+
+    // Cek semua skor terisi
+    const belum = payload.detail.filter(d => d.skor == null);
+    if (status === 'final' && belum.length > 0) {
+      return showToast('Masih ada ' + belum.length + ' indikator belum diberi skor', 'error');
+    }
+
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Menyimpan...</span>`;
+    refreshIcons();
+
+    try {
+      const res = await EvaluasiKsAPI.save(payload);
+      showToast(status === 'final' ? 'Evaluasi difinalisasi!' : 'Draft tersimpan', 'success');
+      if (status === 'final') {
+        setTimeout(() => window.location.href = '/sispa-v2/pengawas/evaluasi-list.html', 1200);
+      } else {
+        // Redirect ke edit URL
+        if (!evalId) {
+          window.location.href = '/sispa-v2/pengawas/evaluasi-form.html?id=' + res.id;
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = orig;
+          refreshIcons();
+        }
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = orig;
+      refreshIcons();
+      showToast('Gagal: ' + err.message, 'error');
+    }
+  }
+</script>
+</body>
+</html>
