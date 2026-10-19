@@ -182,7 +182,37 @@ const UsersAPI = (function () {
     return { changed: true };
   }
 
-  return { list, stats, update, create, resetPassword, remove, softDelete, activate, updateProfile, changePassword };
+  // ===== DABIN (Daerah Binaan Pengawas) =====
+  async function getDabin(pengawasId) {
+    const { data, error } = await sb
+      .from('pengawas_sekolah')
+      .select('npsn_sekolah')
+      .eq('pengawas_id', pengawasId);
+    if (error) throw new Error(error.message);
+    return (data || []).map(d => d.npsn_sekolah);
+  }
+
+  async function setDabin(pengawasId, npsnList) {
+    // Hapus mapping lama
+    const { error: e1 } = await sb
+      .from('pengawas_sekolah')
+      .delete()
+      .eq('pengawas_id', pengawasId);
+    if (e1) throw new Error(e1.message);
+
+    // Simpan mapping baru (jika ada)
+    if (npsnList && npsnList.length > 0) {
+      const rows = npsnList.map(npsn => ({
+        pengawas_id: pengawasId,
+        npsn_sekolah: npsn
+      }));
+      const { error: e2 } = await sb.from('pengawas_sekolah').insert(rows);
+      if (e2) throw new Error(e2.message);
+    }
+    return true;
+  }
+
+  return { list, stats, update, create, resetPassword, remove, softDelete, activate, updateProfile, changePassword, getDabin, setDabin };
 })();
 
 window.UsersAPI = UsersAPI;
