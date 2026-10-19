@@ -41,8 +41,7 @@ const SISPA_NAV = {
     { section: 'Monitoring' },
     { key: 'monitoring', href: '/sispa-v2/pengawas/monitoring.html', label: 'Monitoring Sekolah', icon: 'activity' },
     { section: 'Supervisi Terstruktur' },
-    { key: 'obs-akademik-ps', href: '/sispa-v2/pengawas/obs-akademik-list.html', label: 'Observasi Akademik', icon: 'tablet' },
-    { key: 'obs-coaching-ps', href: '/sispa-v2/pengawas/obs-coaching-list.html', label: 'Observasi Coaching', icon: 'message-circle' },
+    { key: 'obs-progress', href: '/sispa-v2/pengawas/obs-progress.html', label: 'Progress Observasi', icon: 'bar-chart-2' },
     { section: 'Evaluasi' },
     { key: 'evaluasi', href: '/sispa-v2/pengawas/evaluasi-list.html', label: 'Evaluasi Kinerja KS', icon: 'gauge' }
   ],
