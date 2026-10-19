@@ -117,6 +117,7 @@
             <a href="/sispa-v2/ks/obs-akademik-cetak.html?id=${x.id}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;">${icon('printer', 'w-3.5 h-3.5')}<span>Cetak</span></a>
             ${!isTerkirim ? `
               <button class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;" onclick="doKirim('${x.id}')">${icon('send', 'w-3.5 h-3.5')}<span>Kirim</span></button>
+              <button class="btn btn-danger" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;" onclick="doDelete('${x.id}')">${icon('trash-2', 'w-3.5 h-3.5')}<span>Hapus</span></button>
             ` : ''}
           </td>
         </tr>`;
@@ -138,6 +139,25 @@
       } catch (err) { showToast('Gagal: ' + err.message, 'error'); }
     });
   }
+
+  async function doDelete(id) {
+    const ok = await confirmAction(
+      'Hapus observasi?',
+      'Data akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.',
+      { confirmText: 'Ya, hapus', danger: true }
+    );
+    if (!ok) return;
+    await withLoading('Menghapus...', async () => {
+      try {
+        await ObsAkademikAPI.remove(id);
+        showToast('Observasi dihapus', 'success');
+        await loadData();
+      } catch (err) { showToast('Gagal: ' + err.message, 'error'); }
+    });
+  }
+
+  window.doKirim = doKirim;
+  window.doDelete = doDelete;
   document.getElementById('btnRefresh').addEventListener('click', loadData);
 </script>
 </body>
