@@ -66,7 +66,7 @@ const ObsAkademikAPI = (function () {
       mapel: payload.mapel,
       materi: payload.materi,
       durasi: payload.durasi,
-      video_ke: payload.video_ke || 1,
+      link_dokumentasi: payload.link_dokumentasi || null,
       skor_total: skor.total,
       persen_capaian: skor.persen,
       kategori: skor.kategori,
