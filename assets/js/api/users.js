@@ -15,7 +15,7 @@ const UsersAPI = (function () {
   async function list(opts = {}) {
     let query = sb
       .from('profiles')
-      .select('*, sekolah:sekolah(nama)');
+      .select('*, sekolah:sekolah!profiles_npsn_fkey(nama)');
 
     if (opts.role) query = query.eq('role', opts.role);
     if (opts.status) query = query.eq('status', opts.status);
