@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Cetak Observasi Akademik</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  body { background: #f1f5f9; padding: 24px; font-family: 'Inter', sans-serif; }
+  .toolbar { position: fixed; top: 16px; right: 16px; z-index: 100; display: flex; gap: 8px; }
+  .doc { background: white; max-width: 210mm; margin: 0 auto; padding: 15mm 12mm; box-shadow: 0 4px 24px rgba(15,23,42,0.08); color: #0f172a; font-size: 10pt; line-height: 1.5; }
+  .doc h1 { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 4px; }
+  .doc h2 { font-size: 11pt; font-weight: 700; margin: 16px 0 6px; padding-bottom: 3px; border-bottom: 1.5px solid #0f172a; text-transform: uppercase; }
+  .doc .header-sub { text-align: center; font-size: 9.5pt; color: #475569; margin-bottom: 16px; }
+  .doc table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9.5pt; }
+  .doc table.info td { padding: 3px 5px; vertical-align: top; }
+  .doc table.info td:first-child { width: 130px; color: #475569; }
+  .doc table.info td:nth-child(2) { width: 12px; }
+  .doc table.indikator { font-size: 9pt; }
+  .doc table.indikator th { background: #f1f5f9; padding: 5px 6px; text-align: left; border: 1px solid #cbd5e1; font-weight: 600; }
+  .doc table.indikator td { padding: 4px 6px; border: 1px solid #e2e8f0; vertical-align: top; }
+  .doc table.indikator td.kode { width: 36px; text-align: center; font-weight: 600; color: #4338ca; }
+  .doc table.indikator td.skor { width: 50px; text-align: center; font-weight: 700; font-size: 10pt; }
+  .doc table.indikator td.catatan { font-size: 8.5pt; color: #475569; font-style: italic; }
+  .komponen-title { background: #eef2ff; padding: 5px 8px; margin: 12px 0 0; font-weight: 700; font-size: 10pt; color: #312e81; border-left: 3px solid #4f46e5; }
+  .ringkasan-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; padding: 12px; background: #f8fafc; border-radius: 8px; }
+  .ringkasan-item { text-align: center; }
+  .ringkasan-item .label { font-size: 8pt; color: #64748b; }
+  .ringkasan-item .value { font-size: 14pt; font-weight: 700; margin-top: 2px; }
+  .ttd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+  .ttd-box { text-align: center; font-size: 9.5pt; }
+  .ttd-space { height: 55px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 8.5pt; font-style: italic; }
+  .ttd-name { margin-top: 4px; font-weight: 600; border-top: 1px solid #0f172a; padding-top: 3px; }
+  .footer { margin-top: 24px; padding-top: 10px; border-top: 1px dashed #cbd5e1; text-align: center; font-size: 8pt; color: #94a3b8; }
+  @media print {
+    body { background: white; padding: 0; }
+    .toolbar { display: none; }
+    .doc { box-shadow: none; padding: 0; max-width: 100%; }
+    @page { margin: 12mm; size: A4; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <a href="javascript:window.close()" class="btn btn-secondary"><span>✕ Tutup</span></a>
+  <button onclick="window.print()" class="btn btn-primary"><span>🖨️ Cetak / Simpan PDF</span></button>
+</div>
+
+<div id="loading" style="text-align:center; padding:80px 20px; color:#64748b">
+  <div>Memuat data observasi...</div>
+</div>
+
+<div id="doc" class="doc" style="display:none"></div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/api/obs-akademik.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmtTgl(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  async function load() {
+    if (!id) {
+      document.getElementById('loading').innerHTML = '<div style="color:#dc2626">ID observasi tidak ditemukan.</div>';
+      return;
+    }
+
+    try {
+      const session = await sb.auth.getSession();
+      if (!session.data.session) {
+        document.getElementById('loading').innerHTML = '<div style="color:#dc2626">Anda belum login.</div>';
+        return;
+      }
+
+      const res = await ObsAkademikAPI.get(id);
+      renderDoc(res);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('doc').style.display = 'block';
+      setTimeout(() => window.print(), 500);
+    } catch (err) {
+      document.getElementById('loading').innerHTML = '<div style="color:#dc2626">Gagal: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  function renderDoc(res) {
+    const h = res.header;
+    const detail = res.detail;
+    const instrumen = res.instrumen;
+    const detailByKode = {};
+    detail.forEach(d => detailByKode[d.kode] = d);
+
+    let currentSection = '';
+    let tableHtml = '';
+
+    instrumen.forEach((ind) => {
+      if (ind.section !== currentSection) {
+        if (currentSection !== '') tableHtml += `</tbody></table>`;
+        currentSection = ind.section;
+        tableHtml += `<div class="komponen-title">${esc(currentSection)}</div>`;
+        tableHtml += `<table class="indikator"><thead><tr><th style="width:36px">Kode</th><th>Indikator</th><th style="width:50px; text-align:center">Skor</th><th style="width:30%">Catatan / Bukti</th></tr></thead><tbody>`;
+      }
+      const d = detailByKode[ind.kode] || { skor: '-', catatan: '' };
+      tableHtml += `
+        <tr>
+          <td class="kode">${ind.kode}</td>
+          <td>${esc(ind.teks)}</td>
+          <td class="skor">${d.skor}</td>
+          <td class="catatan">${esc(d.catatan || '')}</td>
+        </tr>`;
+    });
+    if (currentSection !== '') tableHtml += `</tbody></table>`;
+
+    const kategoriColor = {
+      'Mahir': '#16a34a',
+      'Berkembang': '#0ea5e9',
+      'Mulai Terlihat': '#f59e0b',
+      'Belum Terlihat': '#dc2626'
+    };
+
+    document.getElementById('doc').innerHTML = `
+      <h1>INSTRUMEN OBSERVASI AKADEMIK</h1>
+      <div class="header-sub">
+        Fokus: Pembelajaran Berbasis Digital<br>
+        ${esc(h.sekolah?.nama || '')} — NPSN ${esc(h.npsn_sekolah)}
+      </div>
+
+      <h2>Identitas Peserta</h2>
+      <table class="info">
+        <tr><td>Nama Supervisor</td><td>:</td><td><strong>${esc(h.profiles?.nama || '—')}</strong></td></tr>
+        <tr><td>Asal Instansi</td><td>:</td><td>${esc(h.sekolah?.nama || '—')}</td></tr>
+        <tr><td>Nama Guru</td><td>:</td><td><strong>${esc(h.guru?.nama || '—')}</strong></td></tr>
+        <tr><td>Mata Pelajaran</td><td>:</td><td>${esc(h.mapel || '—')}</td></tr>
+        <tr><td>Materi</td><td>:</td><td>${esc(h.materi || '—')}</td></tr>
+        <tr><td>Durasi Pembelajaran</td><td>:</td><td>${esc(h.durasi || '—')}</td></tr>
+        <tr><td>Video Ke-</td><td>:</td><td>${h.video_ke || 1}</td></tr>
+        <tr><td>Tanggal Observasi</td><td>:</td><td>${fmtTgl(h.tanggal)}</td></tr>
+      </table>
+
+      <h2>A. Observasi Kegiatan Pembelajaran</h2>
+      ${tableHtml}
+
+      <h2>B. Catatan Tambahan</h2>
+      <p style="font-size:10pt; white-space:pre-wrap">${esc(h.catatan_tambahan || '—')}</p>
+
+      <h2>C. Hasil Observasi</h2>
+      <p><strong>Kekuatan / Praktik Baik:</strong></p>
+      <p style="font-size:10pt; white-space:pre-wrap; margin-bottom:10px">${esc(h.kekuatan || '—')}</p>
+      
+      <p><strong>Area yang Perlu Dikembangkan:</strong></p>
+      <p style="font-size:10pt; white-space:pre-wrap; margin-bottom:10px">${esc(h.area_pengembangan || '—')}</p>
+      
+      <p><strong>Rencana Pembinaan Tindak Lanjut:</strong></p>
+      <p style="font-size:10pt; white-space:pre-wrap">${esc(h.rtl || '—')}</p>
+
+      <h2>D. Kesimpulan dan Tanda Tangan</h2>
+      <div class="ringkasan-box">
+        <div class="ringkasan-item">
+          <div class="label">Skor Total</div>
+          <div class="value">${h.skor_total}<span style="font-size:10pt; color:#94a3b8; font-weight:400">/76</span></div>
+        </div>
+        <div class="ringkasan-item">
+          <div class="label">Persentase</div>
+          <div class="value">${Number(h.persen_capaian).toFixed(1)}%</div>
+        </div>
+        <div class="ringkasan-item" style="grid-column: span 2;">
+          <div class="label">Kategori Capaian</div>
+          <div class="value" style="color:${kategoriColor[h.kategori] || '#0f172a'}">${esc(h.kategori || '—')}</div>
+        </div>
+      </div>
+
+      <div class="ttd-grid">
+        <div class="ttd-box">
+          <div>Supervisor / Kepala Sekolah,</div>
+          <div class="ttd-space">(tanda tangan)</div>
+          <div class="ttd-name">${esc(h.profiles?.nama || '...................................')}</div>
+          <div style="font-size:8.5pt; color:#64748b; margin-top:2px">NIP. ${esc(h.profiles?.nip || '..............................')}</div>
+        </div>
+        <div class="ttd-box">
+          <div>Guru yang Diobservasi,</div>
+          <div class="ttd-space">(tanda tangan)</div>
+          <div class="ttd-name">${esc(h.guru?.nama || '...................................')}</div>
+          <div style="font-size:8.5pt; color:#64748b; margin-top:2px">NIP. ${esc(h.guru?.nip || '..............................')}</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Dicetak dari SISPA — Sistem Informasi Supervisi Pendidikan Akademik<br>
+        ${new Date().toLocaleString('id-ID')} · ID: ${esc(h.id)}
+      </div>
+    `;
+  }
+
+  load();
+</script>
+</body>
+</html>
