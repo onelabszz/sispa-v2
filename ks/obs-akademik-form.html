@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Form Observasi Akademik</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .indikator-row { display: grid; grid-template-columns: 40px 1fr 200px; gap: 0.75rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--slate-100); align-items: start; }
+  .indikator-row:last-child { border-bottom: none; }
+  .indikator-kode { width: 32px; height: 32px; border-radius: 8px; background: var(--brand-50); color: var(--brand-700); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; }
+  .indikator-teks { font-size: 0.875rem; color: var(--slate-800); line-height: 1.5; }
+  .skor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; }
+  .skor-btn { padding: 0.4rem 0.3rem; border-radius: 6px; border: 1.5px solid var(--slate-200); background: white; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all .12s; color: var(--slate-600); text-align: center; }
+  .skor-btn:hover { border-color: var(--brand-500); color: var(--brand-700); }
+  .skor-btn.active { background: var(--brand-600); color: white; border-color: var(--brand-600); }
+  .skor-btn.active.s1 { background: #dc2626; border-color: #dc2626; }
+  .skor-btn.active.s2 { background: #f59e0b; border-color: #f59e0b; }
+  .skor-btn.active.s3 { background: #0ea5e9; border-color: #0ea5e9; }
+  .skor-btn.active.s4 { background: #16a34a; border-color: #16a34a; }
+  .section-header { background: var(--slate-100); padding: 0.75rem 1rem; font-weight: 700; font-size: 0.875rem; color: var(--slate-800); border-bottom: 1px solid var(--slate-200); }
+</style>
+</head>
+<body>
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Form Observasi Akademik</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Fokus: Pembelajaran Berbasis Digital</p>
+  </div>
+  <a href="/sispa-v2/ks/obs-akademik-list.html" class="btn btn-ghost"><i data-lucide="arrow-left" class="w-4 h-4"></i><span>Kembali</span></a>
+</div>
+
+<div id="setupCard" class="card" style="margin-bottom:1.5rem">
+  <div class="card-header"><h2 style="font-weight:600; font-size:0.875rem;">A. Identitas Pembelajaran</h2></div>
+  <div class="card-body" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+    <div><label class="label">Guru</label><select id="fGuru" class="select"></select></div>
+    <div><label class="label">Tanggal</label><input type="date" id="fTanggal" class="input"></div>
+    <div><label class="label">Mata Pelajaran</label><input type="text" id="fMapel" class="input"></div>
+    <div><label class="label">Materi</label><input type="text" id="fMateri" class="input"></div>
+    <div><label class="label">Durasi</label><input type="text" id="fDurasi" class="input" placeholder="Contoh: 2 JP (2x35 menit)"></div>
+    <div><label class="label">Video Ke-</label><select id="fVideoKe" class="select"><option value="1">Video 1</option><option value="2">Video 2</option></select></div>
+  </div>
+</div>
+
+<div id="instrumenContainer"></div>
+
+<div class="card" style="margin-top:1.5rem; margin-bottom:3rem;">
+  <div class="card-header"><h2 style="font-weight:600; font-size:0.875rem;">B. Catatan Tambahan & Kesimpulan</h2></div>
+  <div class="card-body" style="display:flex; flex-direction:column; gap:1rem;">
+    <div><label class="label">Catatan Tambahan</label><textarea id="fCatatan" class="textarea" rows="2"></textarea></div>
+    <div><label class="label">Kekuatan / Praktik Baik</label><textarea id="fKekuatan" class="textarea" rows="2"></textarea></div>
+    <div><label class="label">Area yang Perlu Dikembangkan</label><textarea id="fArea" class="textarea" rows="2"></textarea></div>
+    <div><label class="label">Rencana Pembinaan Tindak Lanjut</label><textarea id="fRtl" class="textarea" rows="2"></textarea></div>
+  </div>
+  <div style="padding:1rem; border-top:1px solid var(--slate-200); display:flex; justify-content:flex-end; gap:0.5rem; background:var(--slate-50)">
+    <button id="btnSave" class="btn btn-primary"><i data-lucide="save" class="w-4 h-4"></i><span>Simpan Observasi</span></button>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/guru.js"></script>
+<script src="/sispa-v2/assets/js/api/obs-akademik.js"></script>
+<script>
+  let user = null, evalId = new URLSearchParams(window.location.search).get('id');
+  let detailMap = {};
+
+  initPage('ks', 'obs-akademik', async (u) => {
+    user = u;
+    await loadGuru();
+    if (evalId) { await loadData(); } else { renderInstrumen(); }
+  });
+
+  async function loadGuru() {
+    const list = await GuruAPI.list({ npsn_sekolah: user.npsn });
+    const sel = document.getElementById('fGuru');
+    sel.innerHTML = '<option value="">— Pilih Guru —</option>';
+    list.forEach(g => sel.innerHTML += `<option value="${g.id}">${g.nama}</option>`);
+  }
+
+  async function loadData() {
+    await withLoading('Memuat...', async () => {
+      const res = await ObsAkademikAPI.get(evalId);
+      document.getElementById('fGuru').value = res.header.guru_id;
+      document.getElementById('fTanggal').value = res.header.tanggal;
+      document.getElementById('fMapel').value = res.header.mapel || '';
+      document.getElementById('fMateri').value = res.header.materi || '';
+      document.getElementById('fDurasi').value = res.header.durasi || '';
+      document.getElementById('fVideoKe').value = res.header.video_ke || 1;
+      document.getElementById('fCatatan').value = res.header.catatan_tambahan || '';
+      document.getElementById('fKekuatan').value = res.header.kekuatan || '';
+      document.getElementById('fArea').value = res.header.area_pengembangan || '';
+      document.getElementById('fRtl').value = res.header.rtl || '';
+      res.detail.forEach(d => detailMap[d.kode] = { skor: d.skor, catatan: d.catatan });
+      renderInstrumen();
+    });
+  }
+
+  function renderInstrumen() {
+    const inst = ObsAkademikAPI.getInstrumen();
+    const container = document.getElementById('instrumenContainer');
+    let html = '';
+    let currentSection = '';
+
+    inst.forEach((ind, idx) => {
+      if (ind.section !== currentSection) {
+        currentSection = ind.section;
+        if (idx > 0) html += `</div></div>`; // Close previous card
+        html += `<div class="card" style="margin-bottom:1.5rem"><div class="section-header">${currentSection}</div><div>`;
+      }
+      const d = detailMap[ind.kode] || {};
+      html += `
+        <div class="indikator-row">
+          <div><div class="indikator-kode">${ind.kode}</div></div>
+          <div>
+            <div class="indikator-teks">${ind.teks}</div>
+            <input type="text" class="input" style="margin-top:0.5rem; font-size:0.75rem;" placeholder="Catatan/bukti observasi..." data-catatan="${ind.kode}" value="${escapeHtml(d.catatan || '')}">
+          </div>
+          <div>
+            <div style="font-size:0.7rem; font-weight:600; color:var(--slate-500); margin-bottom:0.35rem;">Skor (1–4)</div>
+            <div class="skor-grid" data-skor="${ind.kode}">
+              ${[1,2,3,4].map(s => `<button type="button" class="skor-btn s${s} ${d.skor === s ? 'active' : ''}" data-val="${s}">${s}</button>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    });
+    html += `</div></div>`; // Close last card
+    container.innerHTML = html;
+
+    container.querySelectorAll('.skor-grid').forEach(grid => {
+      grid.querySelectorAll('.skor-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.skor-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          detailMap[grid.dataset.skor] = detailMap[grid.dataset.skor] || {};
+          detailMap[grid.dataset.skor].skor = parseInt(btn.dataset.val);
+        });
+      });
+    });
+    container.querySelectorAll('[data-catatan]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        detailMap[inp.dataset.catatan] = detailMap[inp.dataset.catatan] || {};
+        detailMap[inp.dataset.catatan].catatan = inp.value;
+      });
+    });
+    refreshIcons();
+  }
+
+  document.getElementById('btnSave').addEventListener('click', async () => {
+    const btn = document.getElementById('btnSave');
+    const payload = {
+      id: evalId,
+      npsn_sekolah: user.npsn,
+      guru_id: document.getElementById('fGuru').value,
+      tanggal: document.getElementById('fTanggal').value,
+      mapel: document.getElementById('fMapel').value,
+      materi: document.getElementById('fMateri').value,
+      durasi: document.getElementById('fDurasi').value,
+      video_ke: parseInt(document.getElementById('fVideoKe').value),
+      catatan_tambahan: document.getElementById('fCatatan').value,
+      kekuatan: document.getElementById('fKekuatan').value,
+      area_pengembangan: document.getElementById('fArea').value,
+      rtl: document.getElementById('fRtl').value,
+      detail: Object.keys(detailMap).map(k => ({ kode: k, skor: detailMap[k].skor || 0, catatan: detailMap[k].catatan }))
+    };
+
+    if (!payload.guru_id) return showToast('Pilih Guru', 'error');
+    if (!payload.tanggal) return showToast('Isi Tanggal', 'error');
+    if (payload.detail.length < 19) return showToast('Semua 19 indikator harus dinilai', 'error');
+
+    btn.disabled = true;
+    btn.innerHTML = 'Menyimpan...';
+    try {
+      await ObsAkademikAPI.save(payload);
+      showToast('Berhasil disimpan', 'success');
+      setTimeout(() => window.location.href = '/sispa-v2/ks/obs-akademik-list.html', 1000);
+    } catch (err) {
+      showToast('Gagal: ' + err.message, 'error');
+      btn.disabled = false; btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>Simpan Observasi</span>`; refreshIcons();
+    }
+  });
+</script>
+</body>
+</html>
