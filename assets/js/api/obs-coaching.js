@@ -33,7 +33,11 @@ const ObsCoachingAPI = (function () {
   }
 
   async function get(id) {
-    const { data: header, error: e1 } = await sb.from('obs_coaching').select('*, guru:guru(*), sekolah:sekolah(*)').eq('id', id).single();
+    const { data: header, error: e1 } = await sb
+      .from('obs_coaching')
+      .select('*, guru:guru(*), sekolah:sekolah(*), observer:profiles!obs_coaching_obs_fkey(nama, nip)')
+      .eq('id', id)
+      .single();
     if (e1) throw new Error(e1.message);
     const { data: detail, error: e2 } = await sb.from('obs_coaching_detail').select('*').eq('obs_id', id);
     if (e2) throw new Error(e2.message);
