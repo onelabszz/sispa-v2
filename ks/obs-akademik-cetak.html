@@ -139,7 +139,8 @@
 
       <h2>Identitas Peserta</h2>
       <table class="info">
-        <tr><td>Nama Supervisor</td><td>:</td><td><strong>${esc(h.profiles?.nama || '—')}</strong></td></tr>
+        <tr><td>Nama Supervisor</td><td>:</td><td><strong>${esc(h.supervisor?.nama || '—')}</strong></td></tr>
+        <tr><td>NIP Supervisor</td><td>:</td><td>${esc(h.supervisor?.nip || '—')}</td></tr>
         <tr><td>Asal Instansi</td><td>:</td><td>${esc(h.sekolah?.nama || '—')}</td></tr>
         <tr><td>Nama Guru</td><td>:</td><td><strong>${esc(h.guru?.nama || '—')}</strong></td></tr>
         <tr><td>Mata Pelajaran</td><td>:</td><td>${esc(h.mapel || '—')}</td></tr>
@@ -185,8 +186,8 @@
         <div class="ttd-box">
           <div>Supervisor / Kepala Sekolah,</div>
           <div class="ttd-space">(tanda tangan)</div>
-          <div class="ttd-name">${esc(h.profiles?.nama || '...................................')}</div>
-          <div style="font-size:8.5pt; color:#64748b; margin-top:2px">NIP. ${esc(h.profiles?.nip || '..............................')}</div>
+          <div class="ttd-name">${esc(h.supervisor?.nama || '...................................')}</div>
+          <div style="font-size:8.5pt; color:#64748b; margin-top:2px">NIP. ${esc(h.supervisor?.nip || '..............................')}</div>
         </div>
         <div class="ttd-box">
           <div>Guru yang Diobservasi,</div>
