@@ -284,6 +284,7 @@ function mountShell(user, activeKey) {
 
   document.body.insertBefore(shell, document.body.firstChild);
   refreshIcons();
+  setTimeout(refreshPengawasBadge, 500); // Tunggu sb siap & load data
 
   // Responsive: sidebar selalu tampil di desktop
   const sidebar = document.getElementById('appSidebar');
@@ -363,7 +364,47 @@ async function initPage(requiredRole, activeKey, onReady) {
       </div>`;
   }
 }
+/* ============================================================
+   PENGAWAS BADGE COUNTER
+   ============================================================ */
+async function refreshPengawasBadge() {
+  const user = getCurrentUserCached();
+  if (!user || user.role !== 'pengawas') return;
 
+  try {
+    const [akademik, coaching] = await Promise.all([
+      sb.from('obs_akademik').select('id', { count: 'exact', head: true }).eq('status', 'terkirim'),
+      sb.from('obs_coaching').select('id', { count: 'exact', head: true }).eq('status', 'terkirim')
+    ]);
+
+    updateBadgeInSidebar('obs-akademik-ps', akademik.count || 0);
+    updateBadgeInSidebar('obs-coaching-ps', coaching.count || 0);
+  } catch (e) {
+    console.warn('[SISPA] Gagal memuat badge:', e);
+  }
+}
+
+function updateBadgeInSidebar(navKey, count) {
+  const link = document.querySelector(`a[href*="${navKey}"]`); // Hati-hati: ini based on key atau href
+  // Lebih aman cari berdasarkan href persis
+  const exactLink = Array.from(document.querySelectorAll('.nav-item')).find(a => 
+    a.getAttribute('href') && a.getAttribute('href').includes(navKey)
+  );
+  
+  if (exactLink) {
+    // Hapus badge lama
+    const old = exactLink.querySelector('.badge-counter');
+    if (old) old.remove();
+    
+    if (count > 0) {
+      const span = document.createElement('span');
+      span.className = 'badge-counter';
+      span.style.cssText = 'margin-left:auto; background:#ef4444; color:white; font-size:0.65rem; padding:0.1rem 0.4rem; border-radius:999px; font-weight:600;';
+      span.textContent = count;
+      exactLink.appendChild(span);
+    }
+  }
+}
 /* ============================================================
    EXPORT
    ============================================================ */
@@ -375,3 +416,4 @@ window.initPage = initPage;
 window.openProfileMenu = openProfileMenu;
 window.closeProfileMenu = closeProfileMenu;
 window.getCurrentUserCached = getCurrentUserCached;
+window.refreshPengawasBadge = refreshPengawasBadge;
