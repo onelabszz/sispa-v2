@@ -37,10 +37,9 @@ const SISPA_NAV = {
   pengawas: [
     { section: 'Utama' },
     { key: 'dashboard', href: '/sispa-v2/pengawas/dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
+    { key: 'dabin', href: '/sispa-v2/pengawas/dabin.html', label: 'Dabin Saya', icon: 'map-pin' },
     { section: 'Monitoring' },
-    { key: 'profil-guru', href: '/sispa-v2/pengawas/profil-guru.html', label: 'Profil Guru', icon: 'compass' },
-    { key: 'program', href: '/sispa-v2/pengawas/program.html', label: 'Program Supervisi', icon: 'clipboard-list' },
-    { key: 'supervisi', href: '/sispa-v2/pengawas/supervisi.html', label: 'Semua Supervisi', icon: 'clipboard-check' },
+    { key: 'monitoring', href: '/sispa-v2/pengawas/monitoring.html', label: 'Monitoring Sekolah', icon: 'activity' },
     { section: 'Supervisi Terstruktur' },
     { key: 'obs-akademik-ps', href: '/sispa-v2/pengawas/obs-akademik-list.html', label: 'Observasi Akademik', icon: 'tablet' },
     { key: 'obs-coaching-ps', href: '/sispa-v2/pengawas/obs-coaching-list.html', label: 'Observasi Coaching', icon: 'message-circle' },
