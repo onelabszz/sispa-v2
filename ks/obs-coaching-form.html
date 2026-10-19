@@ -111,7 +111,7 @@
       document.getElementById('fKekuatan').value = res.header.catatan_kekuatan || '';
       document.getElementById('fArea').value = res.header.catatan_area || '';
       
-      res.detail.forEach(d => detailMap[d.kode] = { skor: d.skor, catatan: d.catatan });
+      res.detail.forEach(d => detailMap[d.kode] = { tahap: d.tahap, skor: d.skor, catatan: d.catatan });
       rtlList = res.rtl.length > 0 ? res.rtl : [];
       
       if (res.header.status === 'terkirim') {
@@ -223,7 +223,15 @@
       catatan_kekuatan: document.getElementById('fKekuatan').value, catatan_area: document.getElementById('fArea').value,
       rtl: rtlList.filter(r => r.rencana_aksi.trim()),
       status: status,
-      detail: Object.keys(detailMap).map(k => ({ tahap: detailMap[k].tahap, kode: k, skor: detailMap[k].skor || 0, catatan: detailMap[k].catatan }))
+      detail: Object.keys(detailMap).map(k => {
+        const inst = ObsCoachingAPI.getInstrumen().find(i => i.kode === k);
+        return {
+          tahap: inst ? inst.tahap : '',
+          kode: k,
+          skor: detailMap[k].skor || 0,
+          catatan: detailMap[k].catatan
+        };
+      })
     };
 
     if (!payload.guru_id) return showToast('Pilih Guru', 'error');
