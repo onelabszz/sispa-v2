@@ -75,6 +75,7 @@ const ObsAkademikAPI = (function () {
       area_pengembangan: payload.area_pengembangan,
       rtl: payload.rtl,
       status: payload.status || 'draft',
+      submitted_at: payload.status === 'terkirim' ? new Date().toISOString() : null,
       updated_at: new Date().toISOString()
     };
 
