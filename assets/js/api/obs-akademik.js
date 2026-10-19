@@ -103,6 +103,36 @@ const ObsAkademikAPI = (function () {
     return true;
   }
 
-  return { getInstrumen, hitungSkor, list, get, save, remove };
+  // ===== KIRIM KE PENGAWAS =====
+  async function kirim(id) {
+    if (!id) throw new Error('ID wajib diisi');
+    const { data, error } = await sb
+      .from('obs_akademik')
+      .update({
+        status: 'terkirim',
+        submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  // ===== LIST UNTUK PENGAWAS =====
+  async function listForPengawas(opts = {}) {
+    let q = sb
+      .from('obs_akademik')
+      .select('*, guru:guru(nama, mapel, kelas), sekolah:sekolah(nama, kecamatan), supervisor:profiles!obs_akademik_sup_fkey(nama, nip)')
+      .eq('status', 'terkirim');
+    if (opts.npsn_sekolah) q = q.eq('npsn_sekolah', opts.npsn_sekolah);
+    q = q.order('submitted_at', { ascending: false });
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  return { getInstrumen, hitungSkor, list, get, save, remove, kirim, listForPengawas };
 })();
 window.ObsAkademikAPI = ObsAkademikAPI;
