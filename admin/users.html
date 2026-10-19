@@ -71,7 +71,7 @@
           <th style="text-align:center">Role</th>
           <th>Kontak</th>
           <th style="text-align:center">Status</th>
-          <th style="text-align:right; width:180px">Aksi</th>
+          <th style="text-align:right; width:220px">Aksi</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -216,6 +216,11 @@
           </td>
           <td style="text-align:center"><span class="badge ${statusCls}">${u.status}</span></td>
           <td style="text-align:right; white-space:nowrap">
+            ${u.role === 'pengawas' ? `
+              <button class="btn btn-secondary" style="font-size:0.7rem; padding:0.25rem 0.5rem; margin-right:0.25rem" data-dabin="${u.id}" data-nama="${escapeHtml(u.nama || u.email)}">
+                ${icon('map-pin', 'w-3.5 h-3.5')}<span>Dabin</span>
+              </button>
+            ` : ''}
             <button class="icon-btn" data-edit="${u.id}" title="Edit">${icon('pencil', 'w-4 h-4')}</button>
             <button class="icon-btn" data-reset="${u.id}" title="Reset Password">${icon('key', 'w-4 h-4')}</button>
             ${!isSelf && u.role !== 'admin' ? `
@@ -227,16 +232,18 @@
         </tr>`;
     }).join('');
 
+    // Bind events
+    tbody.querySelectorAll('[data-dabin]').forEach(b => b.addEventListener('click', () => openDabinModal(b.dataset.dabin, b.dataset.nama)));
     tbody.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.edit)));
     tbody.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => openReset(b.dataset.reset)));
     tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => doSoftDelete(b.dataset.del)));
     tbody.querySelectorAll('[data-aktif]').forEach(b => b.addEventListener('click', () => doActivate(b.dataset.aktif)));
+    
     refreshIcons();
   }
 
   // ===== CREATE USER =====
   document.getElementById('btnAdd').addEventListener('click', async () => {
-    // Load daftar sekolah dulu
     const { data: sekolahList } = await sb.from('sekolah').select('npsn, nama').eq('status', 'aktif').order('nama');
 
     openModal({
@@ -464,6 +471,52 @@
         btn.innerHTML = `${icon('key', 'w-4 h-4')}<span>Reset</span>`;
         refreshIcons();
         showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // ===== ATUR DABIN =====
+  async function openDabinModal(pengawasId, nama) {
+    const { data: sekolahList } = await sb.from('sekolah').select('npsn, nama').eq('status', 'aktif').order('nama');
+    const currentDabin = await UsersAPI.getDabin(pengawasId);
+
+    const listHtml = (sekolahList || []).map(s => `
+      <label style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem; border-radius:6px; cursor:pointer; hover:background:#f1f5f9" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+        <input type="checkbox" value="${s.npsn}" ${currentDabin.includes(s.npsn) ? 'checked' : ''} style="width:16px; height:16px;">
+        <span style="font-size:0.85rem"><strong>${escapeHtml(s.npsn)}</strong> — ${escapeHtml(s.nama)}</span>
+      </label>
+    `).join('');
+
+    openModal({
+      title: `Atur Dabin — ${nama}`,
+      maxWidth: '520px',
+      body: `
+        <div style="padding:0.75rem; background:var(--brand-50); border:1px solid var(--brand-100); border-radius:8px; font-size:0.75rem; margin-bottom:1rem; color:var(--brand-900)">
+          Centang sekolah yang menjadi tanggung jawab pengawasan. PS hanya akan melihat data dari sekolah yang dicentang.
+        </div>
+        <div style="max-height:300px; overflow-y:auto; border:1px solid var(--slate-200); border-radius:8px; padding:0.5rem; display:flex; flex-direction:column; gap:0.25rem">
+          ${listHtml}
+        </div>
+      `,
+      footer: `
+        <button class="btn btn-secondary" data-close>Batal</button>
+        <button class="btn btn-primary" id="btnSaveDabin">Simpan Dabin</button>
+      `
+    });
+
+    document.getElementById('btnSaveDabin').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSaveDabin');
+      const checked = Array.from(document.querySelectorAll('.modal-panel input[type="checkbox"]:checked')).map(cb => cb.value);
+      
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      try {
+        await UsersAPI.setDabin(pengawasId, checked);
+        closeModal();
+        showToast('Dabin berhasil diperbarui', 'success');
+        await loadData(); // Reload if needed
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+        btn.disabled = false; btn.textContent = 'Simpan Dabin';
       }
     });
   }
