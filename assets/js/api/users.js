@@ -212,7 +212,20 @@ const UsersAPI = (function () {
     return true;
   }
 
-  return { list, stats, update, create, resetPassword, remove, softDelete, activate, updateProfile, changePassword, getDabin, setDabin };
+  async function getAllDabinAssignments() {
+    // Ambil semua relasi PS dan Sekolah beserta nama PS-nya
+    const { data, error } = await sb
+      .from('pengawas_sekolah')
+      .select(`
+        npsn_sekolah,
+        pengawas_id,
+        pengawas:profiles!pengawas_sekolah_pengawas_id_fkey(nama)
+      `);
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  return { list, stats, update, create, resetPassword, remove, softDelete, activate, updateProfile, changePassword, getDabin, setDabin, getAllDabinAssignments };
 })();
 
 window.UsersAPI = UsersAPI;
