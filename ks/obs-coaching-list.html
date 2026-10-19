@@ -145,6 +145,10 @@
                 ${icon('send', 'w-3.5 h-3.5')}
                 <span>Kirim</span>
               </button>
+              <button class="btn btn-danger" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;" onclick="doDelete('${x.id}')">
+                ${icon('trash-2', 'w-3.5 h-3.5')}
+                <span>Hapus</span>
+              </button>
             ` : ''}
           </td>
         </tr>`;
@@ -173,8 +177,25 @@
     });
   }
 
+  async function doDelete(id) {
+    const ok = await confirmAction(
+      'Hapus observasi coaching?',
+      'Data akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.',
+      { confirmText: 'Ya, hapus', danger: true }
+    );
+    if (!ok) return;
+    await withLoading('Menghapus...', async () => {
+      try {
+        await ObsCoachingAPI.remove(id);
+        showToast('Observasi coaching dihapus', 'success');
+        await loadData();
+      } catch (err) { showToast('Gagal: ' + err.message, 'error'); }
+    });
+  }
+
   // Ekspos agar bisa dipanggil dari onclick inline
   window.doKirim = doKirim;
+  window.doDelete = doDelete;
 
   document.getElementById('btnRefresh').addEventListener('click', loadData);
 </script>
