@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Form Observasi Coaching</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .indikator-row { display: grid; grid-template-columns: 40px 1fr 200px; gap: 0.75rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--slate-100); align-items: start; }
+  .indikator-row:last-child { border-bottom: none; }
+  .indikator-kode { width: 32px; height: 32px; border-radius: 8px; background: var(--brand-50); color: var(--brand-700); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; }
+  .indikator-teks { font-size: 0.875rem; color: var(--slate-800); line-height: 1.5; }
+  .skor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; }
+  .skor-btn { padding: 0.4rem 0.3rem; border-radius: 6px; border: 1.5px solid var(--slate-200); background: white; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all .12s; color: var(--slate-600); text-align: center; }
+  .skor-btn:hover { border-color: var(--brand-500); color: var(--brand-700); }
+  .skor-btn.active { background: var(--brand-600); color: white; border-color: var(--brand-600); }
+  .skor-btn.active.s1 { background: #dc2626; border-color: #dc2626; }
+  .skor-btn.active.s2 { background: #f59e0b; border-color: #f59e0b; }
+  .skor-btn.active.s3 { background: #0ea5e9; border-color: #0ea5e9; }
+  .skor-btn.active.s4 { background: #16a34a; border-color: #16a34a; }
+  .section-header { background: var(--slate-100); padding: 0.75rem 1rem; font-weight: 700; font-size: 0.875rem; color: var(--slate-800); border-bottom: 1px solid var(--slate-200); }
+</style>
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Form Observasi Coaching</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Penerapan Teknik STAR-GROW</p>
+  </div>
+  <a href="/sispa-v2/ks/obs-coaching-list.html" class="btn btn-ghost"><i data-lucide="arrow-left" class="w-4 h-4"></i><span>Kembali</span></a>
+</div>
+
+<div id="setupCard" class="card" style="margin-bottom:1.5rem">
+  <div class="card-header"><h2 style="font-weight:600; font-size:0.875rem;">A. Identitas Kegiatan</h2></div>
+  <div class="card-body" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+    <div><label class="label">Guru yang Disupervisi</label><select id="fGuru" class="select"></select></div>
+    <div><label class="label">Tanggal Coaching</label><input type="date" id="fTanggal" class="input"></div>
+  </div>
+</div>
+
+<div id="instrumenContainer"></div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <div class="card-header"><h2 style="font-weight:600; font-size:0.875rem;">E. Catatan Kualitatif Observer</h2></div>
+  <div class="card-body" style="display:flex; flex-direction:column; gap:1rem;">
+    <div><label class="label">Kekuatan yang ditunjukkan Kepala Sekolah</label><textarea id="fKekuatan" class="textarea" rows="2"></textarea></div>
+    <div><label class="label">Area yang perlu dikembangkan</label><textarea id="fArea" class="textarea" rows="2"></textarea></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <div class="card-header">
+    <h2 style="font-weight:600; font-size:0.875rem;">F. Rencana Tindak Lanjut / Kontrak Belajar</h2>
+    <button id="btnAddRtl" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem;"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Baris</button>
+  </div>
+  <div class="card-body" style="overflow-x:auto;">
+    <table class="table" id="rtlTable" style="font-size:0.85rem;">
+      <thead>
+        <tr>
+          <th>Rencana Aksi/Langkah Pengembangan</th>
+          <th>Waktu Pelaksanaan</th>
+          <th>Dukungan yang Diperlukan</th>
+          <th>Indikator Keberhasilan</th>
+          <th style="width:50px;"></th>
+        </tr>
+      </thead>
+      <tbody id="rtlBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem; margin-bottom:3rem;" id="actionBar">
+  <button id="btnSave" class="btn btn-primary"><i data-lucide="save" class="w-4 h-4"></i><span>Simpan Draft</span></button>
+  <button id="btnKirim" class="btn btn-success"><i data-lucide="send" class="w-4 h-4"></i><span>Kirim ke Pengawas</span></button>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/guru.js"></script>
+<script src="/sispa-v2/assets/js/api/obs-coaching.js"></script>
+<script>
+  let user = null, evalId = new URLSearchParams(window.location.search).get('id');
+  let detailMap = {};
+  let rtlList = [];
+
+  initPage('ks', 'obs-coaching', async (u) => {
+    user = u;
+    await loadGuru();
+    if (evalId) { await loadData(); } else { renderInstrumen(); renderRtl(); }
+  });
+
+  async function loadGuru() {
+    const list = await GuruAPI.list({ npsn_sekolah: user.npsn });
+    const sel = document.getElementById('fGuru');
+    sel.innerHTML = '<option value="">— Pilih Guru —</option>';
+    list.forEach(g => sel.innerHTML += `<option value="${g.id}">${g.nama}</option>`);
+  }
+
+  async function loadData() {
+    await withLoading('Memuat...', async () => {
+      const res = await ObsCoachingAPI.get(evalId);
+      document.getElementById('fGuru').value = res.header.guru_id;
+      document.getElementById('fTanggal').value = res.header.tanggal;
+      document.getElementById('fKekuatan').value = res.header.catatan_kekuatan || '';
+      document.getElementById('fArea').value = res.header.catatan_area || '';
+      
+      res.detail.forEach(d => detailMap[d.kode] = { skor: d.skor, catatan: d.catatan });
+      rtlList = res.rtl.length > 0 ? res.rtl : [];
+      
+      if (res.header.status === 'terkirim') {
+        document.querySelectorAll('input, select, textarea, .skor-btn, button').forEach(el => {
+          if (el.id !== 'btnAddRtl') { el.disabled = true; el.style.pointerEvents = 'none'; el.style.opacity = '0.65'; }
+        });
+        document.getElementById('actionBar').innerHTML = '<div style="padding:0.75rem; background:#dcfce7; border:1px solid #86efac; border-radius:8px; color:#166534; font-weight:600;">Instrumen sudah terkirim ke Pengawas.</div>';
+      }
+
+      renderInstrumen();
+      renderRtl();
+    });
+  }
+
+  function renderInstrumen() {
+    const inst = ObsCoachingAPI.getInstrumen();
+    const container = document.getElementById('instrumenContainer');
+    
+    // Kelompokkan STAR & GROW
+    const star = inst.filter(i => ['S','T','A'].includes(i.tahap) || (i.tahap === 'R' && i.kode === 'R1'));
+    const grow = inst.filter(i => ['G','O','W'].includes(i.tahap) || (i.tahap === 'R' && i.kode === 'R2'));
+
+    const buildSection = (title, items) => {
+      let html = `<div class="card" style="margin-bottom:1.5rem;"><div class="section-header">${title}</div><div>`;
+      items.forEach(ind => {
+        const d = detailMap[ind.kode] || {};
+        html += `
+          <div class="indikator-row">
+            <div><div class="indikator-kode">${ind.tahap}</div></div>
+            <div>
+              <div class="indikator-teks">${ind.teks}</div>
+              <input type="text" class="input" style="margin-top:0.5rem; font-size:0.75rem;" placeholder="Catatan/bukti..." data-catatan="${ind.kode}" value="${escapeHtml(d.catatan || '')}">
+            </div>
+            <div>
+              <div style="font-size:0.7rem; font-weight:600; color:var(--slate-500); margin-bottom:0.35rem;">Skor (1–4)</div>
+              <div class="skor-grid" data-skor="${ind.kode}">
+                ${[1,2,3,4].map(s => `<button type="button" class="skor-btn s${s} ${d.skor === s ? 'active' : ''}" data-val="${s}">${s}</button>`).join('')}
+              </div>
+            </div>
+          </div>`;
+      });
+      html += `</div></div>`;
+      return html;
+    };
+
+    container.innerHTML = buildSection('C. Lembar Observasi Penerapan Teknik STAR', star) + 
+                          buildSection('D. Lembar Observasi Tahapan Model GROW', grow);
+
+    container.querySelectorAll('.skor-grid').forEach(grid => {
+      grid.querySelectorAll('.skor-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.skor-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          detailMap[grid.dataset.skor] = detailMap[grid.dataset.skor] || {};
+          detailMap[grid.dataset.skor].skor = parseInt(btn.dataset.val);
+        });
+      });
+    });
+    container.querySelectorAll('[data-catatan]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        detailMap[inp.dataset.catatan] = detailMap[inp.dataset.catatan] || {};
+        detailMap[inp.dataset.catatan].catatan = inp.value;
+      });
+    });
+    refreshIcons();
+  }
+
+  // ===== RTL LOGIC =====
+  function renderRtl() {
+    const tbody = document.getElementById('rtlBody');
+    if (rtlList.length === 0) { rtlList.push({ rencana_aksi:'', waktu_pelaksanaan:'', dukungan:'', indikator_keberhasilan:'' }); }
+    tbody.innerHTML = rtlList.map((r, i) => `
+      <tr>
+        <td><input type="text" class="input" data-rtl="${i}" data-field="rencana_aksi" value="${escapeHtml(r.rencana_aksi||'')}" placeholder="Contoh: Menerapkan diskusi kelompok..."></td>
+        <td><input type="text" class="input" data-rtl="${i}" data-field="waktu_pelaksanaan" value="${escapeHtml(r.waktu_pelaksanaan||'')}" placeholder="Contoh: 2 minggu"></td>
+        <td><input type="text" class="input" data-rtl="${i}" data-field="dukungan" value="${escapeHtml(r.dukungan||'')}" placeholder="Contoh: LKPD"></td>
+        <td><input type="text" class="input" data-rtl="${i}" data-field="indikator_keberhasilan" value="${escapeHtml(r.indikator_keberhasilan||'')}" placeholder="Contoh: 80% murid aktif"></td>
+        <td><button type="button" class="icon-btn" style="color:var(--danger)" data-del-rtl="${i}">${icon('trash-2','w-4 h-4')}</button></td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('input[data-rtl]').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.rtl);
+        rtlList[idx][e.target.dataset.field] = e.target.value;
+      });
+    });
+
+    tbody.querySelectorAll('[data-del-rtl]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        rtlList.splice(parseInt(btn.dataset.delRtl), 1);
+        if (rtlList.length === 0) rtlList.push({ rencana_aksi:'', waktu_pelaksanaan:'', dukungan:'', indikator_keberhasilan:'' });
+        renderRtl();
+      });
+    });
+    refreshIcons();
+  }
+
+  document.getElementById('btnAddRtl').addEventListener('click', () => {
+    rtlList.push({ rencana_aksi:'', waktu_pelaksanaan:'', dukungan:'', indikator_keberhasilan:'' });
+    renderRtl();
+  });
+
+  // ===== SAVE / KIRIM =====
+  async function doSave(status) {
+    const btn = status === 'terkirim' ? document.getElementById('btnKirim') : document.getElementById('btnSave');
+    const payload = {
+      id: evalId, npsn_sekolah: user.npsn, guru_id: document.getElementById('fGuru').value, tanggal: document.getElementById('fTanggal').value,
+      catatan_kekuatan: document.getElementById('fKekuatan').value, catatan_area: document.getElementById('fArea').value,
+      rtl: rtlList.filter(r => r.rencana_aksi.trim()),
+      status: status,
+      detail: Object.keys(detailMap).map(k => ({ tahap: detailMap[k].tahap, kode: k, skor: detailMap[k].skor || 0, catatan: detailMap[k].catatan }))
+    };
+
+    if (!payload.guru_id) return showToast('Pilih Guru', 'error');
+    if (!payload.tanggal) return showToast('Isi Tanggal', 'error');
+    if (payload.detail.length < 8) return showToast('Semua 8 indikator harus dinilai', 'error');
+
+    btn.disabled = true; btn.innerHTML = 'Menyimpan...';
+    try {
+      const res = await ObsCoachingAPI.save(payload);
+      showToast(status === 'terkirim' ? 'Berhasil dikirim!' : 'Draft tersimpan', 'success');
+      setTimeout(() => window.location.href = '/sispa-v2/ks/obs-coaching-list.html', 1000);
+    } catch (err) {
+      showToast('Gagal: ' + err.message, 'error');
+      btn.disabled = false; btn.innerHTML = status === 'terkirim' ? `<i data-lucide="send" class="w-4 h-4"></i><span>Kirim</span>` : `<i data-lucide="save" class="w-4 h-4"></i><span>Simpan Draft</span>`; refreshIcons();
+    }
+  }
+
+  document.getElementById('btnSave').addEventListener('click', () => doSave('draft'));
+  document.getElementById('btnKirim').addEventListener('click', async () => {
+    const ok = await confirmAction('Kirim ke Pengawas?', 'Setelah terkirim, data tidak dapat diubah.', { confirmText: 'Ya, kirim' });
+    if (ok) doSave('terkirim');
+  });
+</script>
+</body>
+</html>
