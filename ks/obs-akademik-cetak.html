@@ -145,8 +145,8 @@
         <tr><td>Mata Pelajaran</td><td>:</td><td>${esc(h.mapel || '—')}</td></tr>
         <tr><td>Materi</td><td>:</td><td>${esc(h.materi || '—')}</td></tr>
         <tr><td>Durasi Pembelajaran</td><td>:</td><td>${esc(h.durasi || '—')}</td></tr>
-        <tr><td>Video Ke-</td><td>:</td><td>${h.video_ke || 1}</td></tr>
         <tr><td>Tanggal Observasi</td><td>:</td><td>${fmtTgl(h.tanggal)}</td></tr>
+        ${h.link_dokumentasi ? `<tr><td>Link Dokumentasi</td><td>:</td><td>${esc(h.link_dokumentasi)}</td></tr>` : ''}
       </table>
 
       <h2>A. Observasi Kegiatan Pembelajaran</h2>
