@@ -1,10 +1,11 @@
 /**
  * SISPA v2 — Auth
+ * v1.1 — getCurrentUser robust: handle admin (npsn null), FK missing, RLS, dll.
  */
+
 async function login(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message);
-  // Clear cache
   window._cachedUser = null;
   return data;
 }
@@ -18,24 +19,55 @@ async function logout() {
 async function getCurrentUser() {
   if (window._cachedUser) return window._cachedUser;
 
+  // ===== STEP 1: Cek session =====
   const { data: { user } } = await sb.auth.getUser();
-  if (!user) return null;
+  if (!user) {
+    console.warn('[SISPA] getCurrentUser: tidak ada session aktif');
+    return null;
+  }
 
+  // ===== STEP 2: Ambil profile TANPA join =====
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('*, sekolah:sekolah(nama)')
+    .select('*')
     .eq('id', user.id)
     .single();
 
   if (error || !profile) {
-    console.error('[SISPA] getCurrentUser error:', error);
+    console.error('[SISPA] getCurrentUser GAGAL mengambil profil:', {
+      userId: user.id,
+      userEmail: user.email,
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      errorDetails: error?.details,
+      errorHint: error?.hint,
+      rawError: error
+    });
     return null;
   }
 
+  // ===== STEP 3: Ambil nama sekolah KONDISIONAL =====
+  let nama_sekolah = null;
+  if (profile.npsn) {
+    try {
+      const { data: sekolah } = await sb
+        .from('sekolah')
+        .select('nama')
+        .eq('npsn', profile.npsn)
+        .maybeSingle();
+      nama_sekolah = sekolah?.nama || null;
+    } catch (e) {
+      console.warn('[SISPA] Sekolah tidak ditemukan untuk npsn:', profile.npsn);
+    }
+  }
+
+  // ===== STEP 4: Bangun user dengan default aman =====
   const result = {
     ...profile,
     email: user.email,
-    nama_sekolah: profile.sekolah?.nama || null
+    nama_sekolah: nama_sekolah,
+    role: profile.role || 'ks',
+    status: profile.status || 'aktif'
   };
 
   window._cachedUser = result;
