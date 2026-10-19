@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
 </head>
 <body>
@@ -22,8 +23,8 @@
       <span>Refresh</span>
     </button>
     <button id="btnImport" class="btn btn-secondary">
-      <i data-lucide="upload" class="w-4 h-4"></i>
-      <span>Impor CSV</span>
+      <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+      <span>Impor Excel</span>
     </button>
     <button id="btnAdd" class="btn btn-primary">
       <i data-lucide="user-plus" class="w-4 h-4"></i>
@@ -390,23 +391,23 @@
     });
   }
 
-  // ===== IMPORT CSV =====
-  document.getElementById('btnImport').addEventListener('click', openImportModal);
-
-  function openImportModal() {
+  // ===== IMPORT EXCEL =====
+  document.getElementById('btnImport').addEventListener('click', () => {
     openModal({
-      title: 'Impor Guru Massal',
+      title: 'Impor Data Guru (Excel)',
       maxWidth: '640px',
       body: `
         <div style="display:flex; flex-direction:column; gap:1rem">
           <div style="padding:0.75rem; border-radius:8px; background:var(--brand-50); border:1px solid var(--brand-100); font-size:0.75rem; color:var(--brand-900)">
-            <div style="font-weight:600; margin-bottom:0.25rem">Format CSV (koma atau tab):</div>
-            <code class="text-mono" style="font-size:0.7rem; display:block; word-break:break-all">
-              NIP, Nama, Mapel, Kelas, Email, Status
-            </code>
-            <div style="margin-top:0.5rem">
-              <strong>Status</strong>: PNS / PPPK / Non ASN (opsional)
-            </div>
+            <div style="font-weight:600; margin-bottom:0.25rem">Format Kolom yang Didukung:</div>
+            <code class="text-mono" style="font-size:0.7rem; display:block">NIP | Nama | Mapel | Kelas | Email | Status Kepegawaian</code>
+            <div style="margin-top:0.5rem">Baris pertama dianggap header. Pastikan file berformat <strong>.xlsx</strong>, <strong>.xls</strong>, atau <strong>.csv</strong>.</div>
+          </div>
+
+          <div>
+            <button type="button" id="btnDownloadTemplateGuru" class="btn btn-ghost" style="font-size:0.75rem; color:var(--brand-600)">
+              ${icon('download', 'w-3.5 h-3.5')}<span>Unduh Template Excel</span>
+            </button>
           </div>
 
           <div>
@@ -418,145 +419,111 @@
           </div>
 
           <div>
-            <label class="label" for="csvInput">Paste Data CSV</label>
-            <textarea id="csvInput" rows="8" class="textarea text-mono" style="font-size:0.75rem"
-                      placeholder="198501012010011001, Budi Santoso S.Pd, Matematika, V, budi@sch.id, PNS
-198502022011012002, Siti Aminah S.Pd, IPA, VI, siti@sch.id, PPPK"></textarea>
+            <label class="label" for="excelInputGuru">Pilih File Excel</label>
+            <input type="file" id="excelInputGuru" accept=".xlsx,.xls,.csv" class="input" style="padding:0.5rem" />
           </div>
 
-          <div>
-            <button type="button" id="btnPilihFile" class="btn btn-ghost" style="font-size:0.75rem">
-              ${icon('file-up', 'w-3.5 h-3.5')}<span>Atau pilih file .csv/.txt</span>
-            </button>
-            <input type="file" id="fileInput" accept=".csv,.txt" style="display:none" />
-          </div>
-
-          <div id="previewBox" class="hidden">
-            <div style="font-size:0.75rem; color:var(--slate-600); margin-bottom:0.5rem">
-              <span id="previewInfo">—</span>
-            </div>
-          </div>
-
-          <div id="importResult" class="hidden"></div>
+          <div id="importResultGuru" class="hidden"></div>
         </div>`,
       footer: `
         <button class="btn btn-secondary" data-close>Batal</button>
-        <button class="btn btn-primary" id="btnDoImport">
-          ${icon('upload', 'w-4 h-4')}<span>Impor</span>
+        <button class="btn btn-primary" id="btnDoImportGuru">
+          ${icon('upload', 'w-4 h-4')}<span>Mulai Impor</span>
         </button>`
     });
 
-    document.getElementById('btnPilihFile').addEventListener('click', () => document.getElementById('fileInput').click());
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        document.getElementById('csvInput').value = ev.target.result;
-      };
-      reader.readAsText(f);
+    // Download Template
+    document.getElementById('btnDownloadTemplateGuru').addEventListener('click', () => {
+      const template = [
+        ['NIP', 'Nama', 'Mapel', 'Kelas', 'Email', 'Status Kepegawaian'],
+        ['198501012010011001', 'Budi Santoso, S.Pd', 'Matematika', 'V', 'budi@sekolah.id', 'PNS'],
+        ['198502022011012002', 'Siti Aminah, S.Pd', 'IPA', 'VI', 'siti@sekolah.id', 'PPPK']
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(template);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Template Guru');
+      XLSX.writeFile(wb, 'Template_Import_Guru.xlsx');
     });
 
-    document.getElementById('btnDoImport').addEventListener('click', doImport);
-  }
+    // Proses Impor
+    document.getElementById('btnDoImportGuru').addEventListener('click', async () => {
+      const npsn = document.getElementById('impSekolah').value;
+      const fileInput = document.getElementById('excelInputGuru');
+      const file = fileInput.files[0];
 
-  function parseCsv(raw) {
-    const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-      .split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    if (!lines.length) return [];
+      if (!npsn) return showToast('Pilih sekolah tujuan', 'error');
+      if (!file) return showToast('Pilih file Excel terlebih dahulu', 'error');
 
-    const sample = lines[0];
-    const tabCount = (sample.match(/\t/g) || []).length;
-    const commaCount = (sample.match(/,/g) || []).length;
-    const semiCount = (sample.match(/;/g) || []).length;
-    let delim = ',';
-    if (tabCount > commaCount && tabCount > semiCount) delim = '\t';
-    else if (semiCount > commaCount && semiCount > tabCount) delim = ';';
-
-    function splitLine(line) {
-      const out = []; let cur = ''; let q = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-          if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q;
-        } else if (ch === delim && !q) { out.push(cur); cur = ''; }
-        else cur += ch;
-      }
-      out.push(cur);
-      return out.map(s => s.trim());
-    }
-
-    const first = splitLine(lines[0]).map(c => c.toLowerCase());
-    const hasHeader = first.some(c => ['nip', 'nama'].includes(c));
-    const start = hasHeader ? 1 : 0;
-
-    const rows = [];
-    for (let i = start; i < lines.length; i++) {
-      const c = splitLine(lines[i]);
-      rows.push({
-        nip: c[0] || '',
-        nama: c[1] || '',
-        mapel: c[2] || '',
-        kelas: c[3] || '',
-        email: c[4] || '',
-        status_kepegawaian: c[5] || ''
-      });
-    }
-    return rows;
-  }
-
-  async function doImport() {
-    const npsn = document.getElementById('impSekolah').value;
-    const raw = document.getElementById('csvInput').value.trim();
-
-    if (!npsn) return showToast('Pilih sekolah tujuan', 'error');
-    if (!raw) return showToast('Paste data CSV terlebih dahulu', 'error');
-
-    const rows = parseCsv(raw);
-    if (!rows.length) return showToast('Tidak ada baris yang terdeteksi', 'error');
-
-    const ok = await confirmAction(
-      `Impor ${rows.length} guru?`,
-      'Data akan ditambahkan ke sekolah yang dipilih.',
-      { confirmText: 'Ya, impor' }
-    );
-    if (!ok) return;
-
-    const btn = document.getElementById('btnDoImport');
-    btn.disabled = true;
-    btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Mengimpor...</span>`;
-    refreshIcons();
-
-    try {
-      const res = await GuruAPI.importBulk(npsn, rows);
-      const resultBox = document.getElementById('importResult');
-      resultBox.classList.remove('hidden');
-      resultBox.innerHTML = `
-        <div style="padding:0.75rem; border-radius:8px; background:${res.errors.length ? '#fef3c7' : '#dcfce7'}; border:1px solid ${res.errors.length ? '#fde68a' : '#bbf7d0'}; font-size:0.875rem">
-          <div style="display:flex; align-items:center; gap:0.5rem; font-weight:600; margin-bottom:0.5rem">
-            ${icon(res.errors.length ? 'alert-triangle' : 'check-circle-2', 'w-4 h-4')}
-            <span>Hasil Impor</span>
-          </div>
-          <div><strong>Berhasil</strong>: ${res.inserted}</div>
-          ${res.errors.length ? `<div><strong>Error</strong>: ${res.errors.length}</div>` : ''}
-          ${res.errors.length ? `
-            <div style="margin-top:0.5rem; font-size:0.75rem; max-height:100px; overflow-y:auto">
-              ${res.errors.map(e => `<div>Baris ${e.line}: ${escapeHtml(e.message)}</div>`).join('')}
-            </div>` : ''}
-        </div>`;
-      showToast(res.inserted + ' guru berhasil diimpor', 'success');
-      await loadData();
-
-      btn.disabled = false;
-      btn.innerHTML = `${icon('check', 'w-4 h-4')}<span>Selesai — tutup</span>`;
-      btn.addEventListener('click', closeModal, { once: true });
-    } catch (err) {
-      btn.disabled = false;
-      btn.innerHTML = `${icon('upload', 'w-4 h-4')}<span>Impor</span>`;
+      const btn = document.getElementById('btnDoImportGuru');
+      btn.disabled = true;
+      btn.innerHTML = `${icon('loader-2', 'w-4 h-4')}<span>Memproses...</span>`;
       refreshIcons();
-      showToast('Gagal impor: ' + err.message, 'error');
-    }
-  }
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          if (json.length < 2) throw new Error('File Excel kosong atau hanya berisi header');
+
+          const headers = json[0].map(h => String(h).toLowerCase().trim());
+          const rows = [];
+
+          for (let i = 1; i < json.length; i++) {
+            const row = json[i];
+            if (row.length === 0) continue; // Skip baris benar-benar kosong
+
+            const item = {};
+            headers.forEach((h, idx) => {
+              if (h) item[h] = row[idx] ? String(row[idx]).trim() : '';
+            });
+
+            // Normalisasi key
+            const nip = item['nip'] || '';
+            const nama = item['nama'] || '';
+            const mapel = item['mapel'] || item['mata pelajaran'] || '';
+            const kelas = item['kelas'] || '';
+            const email = item['email'] || '';
+            const statusKepegawaian = item['status kepegawaian'] || item['status'] || '';
+
+            // Skip jika nama kosong (nama wajib ada)
+            if (!nama) continue; 
+
+            rows.push({ nip, nama, mapel, kelas, email, status_kepegawaian: statusKepegawaian });
+          }
+
+          if (rows.length === 0) throw new Error('Tidak ada data valid untuk diimpor. Pastikan kolom "Nama" terisi.');
+
+          const res = await GuruAPI.importBulk(npsn, rows);
+          
+          const resultBox = document.getElementById('importResultGuru');
+          resultBox.classList.remove('hidden');
+          resultBox.innerHTML = `
+            <div style="padding:0.75rem; border-radius:8px; background:${res.errors.length ? '#fef3c7' : '#dcfce7'}; border:1px solid ${res.errors.length ? '#fde68a' : '#bbf7d0'}; font-size:0.875rem">
+              <div><strong>Berhasil</strong>: ${res.inserted}</div>
+              ${res.errors.length ? `<div><strong>Gagal</strong>: ${res.errors.length}</div>` : ''}
+            </div>`;
+          
+          showToast(res.inserted + ' guru berhasil diimpor', 'success');
+          await loadData();
+          
+          btn.disabled = false;
+          btn.innerHTML = `${icon('check', 'w-4 h-4')}<span>Selesai</span>`;
+          btn.addEventListener('click', closeModal, { once: true });
+
+        } catch (err) {
+          showToast('Gagal impor: ' + err.message, 'error');
+          btn.disabled = false;
+          btn.innerHTML = `${icon('upload', 'w-4 h-4')}<span>Mulai Impor</span>`;
+          refreshIcons();
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  });
 
   // ===== FILTER =====
   let debounce = null;
