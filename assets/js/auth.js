@@ -3,9 +3,35 @@
  * v1.1 — getCurrentUser robust: handle admin (npsn null), FK missing, RLS, dll.
  */
 
-async function login(email, password) {
+async function login(identifier, password) {
+  let email = identifier.trim();
+
+  // Jika bukan email (tidak ada @), anggap sebagai NPSN
+  if (!email.includes('@')) {
+    // Cari email dari profil berdasarkan NPSN
+    const { data: profile, error: errProfile } = await sb
+      .from('profiles')
+      .select('email')
+      .eq('npsn', email)
+      .eq('role', 'ks') // Hanya KS yang punya NPSN
+      .maybeSingle();
+
+    if (errProfile || !profile || !profile.email) {
+      throw new Error('NPSN tidak ditemukan atau tidak terdaftar sebagai Kepala Sekolah.');
+    }
+    email = profile.email;
+  }
+
+  // Proses login ke Supabase Auth
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Terjemahkan error Supabase ke bahasa Indonesia
+    if (error.message.includes('Invalid login credentials')) {
+      throw new Error('Email/NPSN atau password salah.');
+    }
+    throw new Error(error.message);
+  }
+  
   window._cachedUser = null;
   return data;
 }
