@@ -7,6 +7,8 @@
 <meta name="description" content="SISPA — Sistem Informasi Supervisi Pendidikan Akademik. Berbasis Modul 5: Supervisi Akademik pada Pembelajaran Mendalam termasuk Koding & Kecerdasan Artifisial." />
 <link rel="icon" type="image/svg+xml" href="/sispa-v2/favicon.svg" />
 <link rel="apple-touch-icon" href="/sispa-v2/favicon.svg" />
+<link rel="manifest" href="/sispa-v2/manifest.json" />
+<meta name="theme-color" content="#4f46e5" />
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
@@ -633,6 +635,20 @@
       document.getElementById('password').focus();
     }
   });
+</script>
+<script>
+  // Registrasi Service Worker untuk PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sispa-v2/service-worker.js')
+        .then((reg) => {
+          console.log('[PWA] Service Worker terdaftar:', reg.scope);
+        })
+        .catch((err) => {
+          console.error('[PWA] Gagal mendaftarkan Service Worker:', err);
+        });
+    });
+  }
 </script>
 </body>
 </html>
