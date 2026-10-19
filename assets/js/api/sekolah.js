@@ -147,7 +147,60 @@ const SekolahAPI = (function () {
     return result;
   }
 
-  return { list, get, create, update, softDelete, hardDelete, stats };
+  async function importBulk(list) {
+    if (!Array.isArray(list) || list.length === 0) throw new Error('Data kosong');
+    if (list.length > 500) throw new Error('Maksimal 500 sekolah per impor');
+
+    const errors = [];
+    const rows = [];
+
+    list.forEach((item, i) => {
+      const npsn = String(item.npsn || '').trim();
+      const nama = (item.nama || '').trim();
+      const jenjang = (item.jenjang || '').trim();
+
+      if (!/^\d{8}$/.test(npsn)) {
+        errors.push({ line: i + 1, message: 'NPSN tidak valid (harus 8 digit)' });
+        return;
+      }
+      if (!nama) {
+        errors.push({ line: i + 1, message: 'Nama sekolah kosong' });
+        return;
+      }
+      if (!jenjang) {
+        errors.push({ line: i + 1, message: 'Jenjang kosong' });
+        return;
+      }
+
+      rows.push({
+        npsn: npsn,
+        nama: nama,
+        jenjang: jenjang,
+        kecamatan: (item.kecamatan || '').trim() || null,
+        kabupaten: (item.kabupaten || '').trim() || null,
+        provinsi: (item.provinsi || '').trim() || null,
+        alamat: (item.alamat || '').trim() || null,
+        telepon: (item.telepon || '').trim() || null,
+        email: (item.email || '').trim() || null,
+        status: (item.status || 'aktif').trim().toLowerCase()
+      });
+    });
+
+    if (rows.length === 0) return { inserted: 0, errors };
+
+    const { data, error } = await sb.from('sekolah').insert(rows).select('npsn');
+    if (error) {
+      // Jika error unique constraint NPSN (duplikat)
+      if (error.code === '23505') {
+        throw new Error('Beberapa NPSN sudah terdaftar di database. Periksa kembali file Anda.');
+      }
+      throw new Error(error.message);
+    }
+
+    return { inserted: data.length, errors };
+  }
+
+  return { list, get, create, update, softDelete, hardDelete, stats, importBulk };
 })();
 
 window.SekolahAPI = SekolahAPI;
