@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Detail Monitoring Sekolah</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .tab-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--slate-500);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all .15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .tab-btn:hover { color: var(--slate-900); }
+  .tab-btn.active { color: var(--brand-600); border-bottom-color: var(--brand-600); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div style="display:flex; gap:1rem; align-items:center">
+    <a href="/sispa-v2/pengawas/monitoring.html" class="btn btn-secondary" style="padding:0.5rem; border-radius:50%; width:40px; height:40px; justify-content:center">
+      <i data-lucide="arrow-left" class="w-5 h-5"></i>
+    </a>
+    <div>
+      <h1 id="pageTitle" style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Detail Sekolah</h1>
+      <p id="pageSubtitle" style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Memuat...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div style="border-bottom: 1px solid var(--slate-200); margin-bottom: 1.5rem; display: flex; gap: 0.25rem; overflow-x: auto;">
+  <button class="tab-btn active" data-tab="guru">👥 Profil Guru</button>
+  <button class="tab-btn" data-tab="program">📋 Program Supervisi</button>
+  <button class="tab-btn" data-tab="supervisi">📝 Semua Supervisi</button>
+</div>
+
+<!-- Tab Content: Profil Guru -->
+<div id="tab-guru" class="tab-content">
+  <div class="card" style="overflow:hidden">
+    <div id="guruWrap" style="overflow-x:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Guru</th>
+            <th style="text-align:center">Kepegawaian</th>
+            <th style="text-align:center">Abstraksi</th>
+            <th style="text-align:center">Komitmen</th>
+            <th style="text-align:center">Tipe</th>
+            <th>Terakhir Disupervisi</th>
+          </tr>
+        </thead>
+        <tbody id="guruBody">
+          <tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--slate-400)">Memuat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="guruEmpty" class="hidden empty-state">
+      <div class="empty-state-icon"><i data-lucide="users" class="w-6 h-6"></i></div>
+      <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada guru</h3>
+    </div>
+  </div>
+</div>
+
+<!-- Tab Content: Program -->
+<div id="tab-program" class="tab-content" style="display:none">
+  <div class="card" style="overflow:hidden">
+    <div id="programWrap" style="overflow-x:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Guru</th>
+            <th>Periode</th>
+            <th style="text-align:center">Tipe</th>
+            <th>Pendekatan</th>
+            <th>Waktu Rencana</th>
+          </tr>
+        </thead>
+        <tbody id="programBody">
+          <tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--slate-400)">Memuat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="programEmpty" class="hidden empty-state">
+      <div class="empty-state-icon"><i data-lucide="clipboard-list" class="w-6 h-6"></i></div>
+      <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada program</h3>
+    </div>
+  </div>
+</div>
+
+<!-- Tab Content: Supervisi -->
+<div id="tab-supervisi" class="tab-content" style="display:none">
+  <div class="card" style="overflow:hidden">
+    <div id="supWrap" style="overflow-x:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Jenis</th>
+            <th>Guru</th>
+            <th>Tanggal</th>
+            <th style="text-align:center">Status</th>
+            <th style="text-align:right; width:120px">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="supBody">
+          <tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--slate-400)">Memuat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="supEmpty" class="hidden empty-state">
+      <div class="empty-state-icon"><i data-lucide="clipboard-check" class="w-6 h-6"></i></div>
+      <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada supervisi</h3>
+    </div>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script>
+  let user = null;
+  const params = new URLSearchParams(window.location.search);
+  const npsn = params.get('npsn');
+  let schoolInfo = null;
+
+  initPage('pengawas', 'monitoring', async (u) => {
+    user = u;
+    if (!npsn) {
+      showToast('NPSN tidak ditemukan di URL', 'error');
+      setTimeout(() => window.location.href = '/sispa-v2/pengawas/monitoring.html', 1500);
+      return;
+    }
+    await loadHeader();
+    await loadGuru(); // Load default tab
+  });
+
+  async function loadHeader() {
+    const { data, error } = await sb.from('sekolah').select('*').eq('npsn', npsn).single();
+    if (error || !data) return;
+    schoolInfo = data;
+    document.getElementById('pageTitle').textContent = data.nama;
+    document.getElementById('pageSubtitle').innerHTML = `
+      NPSN <span class="text-mono">${data.npsn}</span> · ${data.jenjang || ''} ${data.kecamatan ? '· Kec. ' + data.kecamatan : ''}
+    `;
+  }
+
+  // Tabs Logic
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      
+      btn.classList.add('active');
+      const tabId = btn.dataset.tab;
+      document.getElementById('tab-' + tabId).style.display = 'block';
+
+      if (tabId === 'guru') loadGuru();
+      else if (tabId === 'program') loadProgram();
+      else if (tabId === 'supervisi') loadSupervisi();
+    });
+  });
+
+  // ===== TAB 1: GURU =====
+  async function loadGuru() {
+    try {
+      // 1. Ambil semua guru aktif
+      const { data: guruList, error: errG } = await sb
+        .from('guru')
+        .select('*')
+        .eq('npsn_sekolah', npsn)
+        .eq('status', 'aktif')
+        .order('nama');
+      
+      if (errG) throw errG;
+
+      const wrap = document.getElementById('guruWrap');
+      const empty = document.getElementById('guruEmpty');
+      const body = document.getElementById('guruBody');
+
+      if (!guruList || guruList.length === 0) {
+        wrap.style.display = 'none';
+        empty.classList.remove('hidden');
+        refreshIcons();
+        return;
+      }
+
+      // 2. Ambil profil tipe (tipe guru)
+      let tipeMap = {};
+      if (guruList.length > 0) {
+        const guruIds = guruList.map(g => g.id);
+        const { data: tipeData } = await sb
+          .from('profil_tipe_guru')
+          .select('*')
+          .in('guru_id', guruIds)
+          .order('created_at', { ascending: false });
+        
+        if (tipeData) {
+          tipeData.forEach(t => { if (!tipeMap[t.guru_id]) tipeMap[t.guru_id] = t; });
+        }
+      }
+
+      // 3. Ambil supervisi terakhir
+      let lastSup = {};
+      const { data: supData } = await sb
+        .from('supervisi')
+        .select('guru_id, tanggal_mulai')
+        .eq('npsn_sekolah', npsn)
+        .order('tanggal_mulai', { ascending: false });
+      if (supData) {
+        supData.forEach(s => { if (!lastSup[s.guru_id]) lastSup[s.guru_id] = s.tanggal_mulai; });
+      }
+
+      wrap.style.display = 'block';
+      empty.classList.add('hidden');
+
+      body.innerHTML = guruList.map(g => {
+        const t = tipeMap[g.id];
+        const supTerakhir = lastSup[g.id];
+        
+        const pegCls = { 'PNS': 'badge-info', 'PPPK': 'badge-warning', 'Non ASN': 'badge-neutral' };
+        const pegBadge = g.status_kepegawaian ? `<span class="badge ${pegCls[g.status_kepegawaian] || 'badge-neutral'}">${escapeHtml(g.status_kepegawaian)}</span>` : '—';
+        
+        const tipeBadgeMap = {
+          'dropout': 'badge-danger', 'unfocused_worker': 'badge-warning', 
+          'analytical_observer': 'badge-info', 'professional': 'badge-success'
+        };
+        const tipeLabelMap = {
+          'dropout': 'Dropout', 'unfocused_worker': 'Unfocused', 
+          'analytical_observer': 'Analytical', 'professional': 'Professional'
+        };
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:600; color:var(--slate-900)">${escapeHtml(g.nama)}</div>
+              <div style="font-size:0.75rem; color:var(--slate-500)">${escapeHtml(g.nip || 'NIP -')} · ${escapeHtml(g.mapel || '-')}</div>
+            </td>
+            <td style="text-align:center">${pegBadge}</td>
+            <td style="text-align:center">${t ? `<span class="badge ${t.level_abstraksi === 'tinggi' ? 'badge-success' : 'badge-danger'}">${t.level_abstraksi === 'tinggi' ? 'Tinggi' : 'Rendah'}</span>` : '—'}</td>
+            <td style="text-align:center">${t ? `<span class="badge ${t.level_komitmen === 'tinggi' ? 'badge-success' : 'badge-danger'}">${t.level_komitmen === 'tinggi' ? 'Tinggi' : 'Rendah'}</span>` : '—'}</td>
+            <td style="text-align:center">${t ? `<span class="badge ${tipeBadgeMap[t.tipe] || 'badge-neutral'}">${tipeLabelMap[t.tipe] || t.tipe}</span>` : '<span style="font-size:0.75rem; color:var(--slate-400)">Belum</span>'}</td>
+            <td style="font-size:0.85rem">${supTerakhir ? formatTanggal(supTerakhir) : '—'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      refreshIcons();
+    } catch (err) {
+      showToast('Gagal memuat guru: ' + err.message, 'error');
+    }
+  }
+
+  // ===== TAB 2: PROGRAM =====
+  async function loadProgram() {
+    try {
+      const { data: progList, error } = await sb
+        .from('program_supervisi')
+        .select('*, guru:guru(nama)')
+        .eq('npsn_sekolah', npsn)
+        .order('periode', { ascending: false });
+
+      if (error) throw error;
+
+      const wrap = document.getElementById('programWrap');
+      const empty = document.getElementById('programEmpty');
+      const body = document.getElementById('programBody');
+
+      if (!progList || progList.length === 0) {
+        wrap.style.display = 'none';
+        empty.classList.remove('hidden');
+        refreshIcons();
+        return;
+      }
+
+      wrap.style.display = 'block';
+      empty.classList.add('hidden');
+
+      const pendekatanLabel = (p) => p ? p.replace(/_/g,'-').replace(/\b\w/g, c => c.toUpperCase()) : '—';
+      const tipeLabelMap = {
+        'dropout': 'Dropout', 'unfocused_worker': 'Unfocused', 
+        'analytical_observer': 'Analytical', 'professional': 'Professional'
+      };
+      const tipeBadgeMap = {
+        'dropout': 'badge-danger', 'unfocused_worker': 'badge-warning', 
+        'analytical_observer': 'badge-info', 'professional': 'badge-success'
+      };
+
+      body.innerHTML = progList.map(p => `
+        <tr>
+          <td style="font-weight:600; color:var(--slate-900)">${escapeHtml(p.guru?.nama || '—')}</td>
+          <td class="text-mono" style="font-size:0.8rem">${escapeHtml(p.periode)}</td>
+          <td style="text-align:center">
+            ${p.tipe ? `<span class="badge ${tipeBadgeMap[p.tipe] || 'badge-neutral'}">${tipeLabelMap[p.tipe] || p.tipe}</span>` : '—'}
+          </td>
+          <td style="font-size:0.85rem">${pendekatanLabel(p.pendekatan)}</td>
+          <td style="font-size:0.85rem">${p.waktu_rencana ? formatTanggal(p.waktu_rencana) : '—'}</td>
+        </tr>
+      `).join('');
+
+      refreshIcons();
+    } catch (err) {
+      showToast('Gagal memuat program: ' + err.message, 'error');
+    }
+  }
+
+  // ===== TAB 3: SUPERVISI =====
+  async function loadSupervisi() {
+    try {
+      // Ambil dari 3 tabel: supervisi, obs_akademik, obs_coaching
+      const [supRes, obsA, obsC] = await Promise.all([
+        sb.from('supervisi').select('id, guru_id, status, tanggal_mulai, created_at, guru:guru(nama)').eq('npsn_sekolah', npsn),
+        sb.from('obs_akademik').select('id, guru_id, status, tanggal, created_at, guru:guru(nama)').eq('npsn_sekolah', npsn),
+        sb.from('obs_coaching').select('id, guru_id, status, tanggal, created_at, guru:guru(nama)').eq('npsn_sekolah', npsn)
+      ]);
+
+      // Gabungkan
+      let allSup = [];
+      if (supRes.data) supRes.data.forEach(s => allSup.push({ ...s, jenis: 'Reguler', tgl: s.tanggal_mulai || s.created_at }));
+      if (obsA.data) obsA.data.forEach(s => allSup.push({ ...s, jenis: 'Obs. Akademik', tgl: s.tanggal || s.created_at }));
+      if (obsC.data) obsC.data.forEach(s => allSup.push({ ...s, jenis: 'Obs. Coaching', tgl: s.tanggal || s.created_at }));
+
+      // Sort by date descending
+      allSup.sort((a, b) => new Date(b.tgl) - new Date(a.tgl));
+
+      const wrap = document.getElementById('supWrap');
+      const empty = document.getElementById('supEmpty');
+      const body = document.getElementById('supBody');
+
+      if (allSup.length === 0) {
+        wrap.style.display = 'none';
+        empty.classList.remove('hidden');
+        refreshIcons();
+        return;
+      }
+
+      wrap.style.display = 'block';
+      empty.classList.add('hidden');
+
+      body.innerHTML = allSup.map(s => {
+        let statusCls = 'badge-neutral';
+        let statusLabel = s.status;
+        
+        if (s.status === 'selesai' || s.status === 'terkirim') { statusCls = 'badge-success'; statusLabel = s.status === 'selesai' ? 'Selesai' : 'Terkirim'; }
+        else if (s.status === 'draft') { statusCls = 'badge-neutral'; statusLabel = 'Draft'; }
+        else { statusCls = 'badge-warning'; statusLabel = 'Berjalan'; }
+
+        const jenisCls = s.jenis === 'Reguler' ? 'badge-info' : (s.jenis === 'Obs. Akademik' ? 'badge-neutral' : 'badge-warning');
+
+        return `
+          <tr>
+            <td style="text-align:center"><span class="badge ${jenisCls}">${s.jenis}</span></td>
+            <td style="font-weight:500; color:var(--slate-900)">${escapeHtml(s.guru?.nama || '—')}</td>
+            <td style="font-size:0.85rem">${formatTanggal(s.tgl)}</td>
+            <td style="text-align:center"><span class="badge ${statusCls}">${statusLabel}</span></td>
+            <td style="text-align:right; white-space:nowrap">
+              ${s.jenis === 'Reguler' ? `
+                <a href="/sispa-v2/ks/cetak-supervisi.html?id=${s.id}" target="_blank" class="btn btn-secondary" style="font-size:0.7rem; padding:0.3rem 0.5rem;">${icon('printer', 'w-3 h-3')} Cetak</a>
+              ` : s.jenis === 'Obs. Akademik' ? `
+                <a href="/sispa-v2/ks/obs-akademik-cetak.html?id=${s.id}" target="_blank" class="btn btn-secondary" style="font-size:0.7rem; padding:0.3rem 0.5rem;">${icon('printer', 'w-3 h-3')} Cetak</a>
+              ` : `
+                <a href="/sispa-v2/ks/obs-coaching-cetak.html?id=${s.id}" target="_blank" class="btn btn-secondary" style="font-size:0.7rem; padding:0.3rem 0.5rem;">${icon('printer', 'w-3 h-3')} Cetak</a>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      refreshIcons();
+    } catch (err) {
+      showToast('Gagal memuat supervisi: ' + err.message, 'error');
+    }
+  }
+</script>
+</body>
+</html>
