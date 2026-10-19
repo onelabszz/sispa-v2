@@ -56,7 +56,8 @@
     <div><label class="label">Rencana Pembinaan Tindak Lanjut</label><textarea id="fRtl" class="textarea" rows="2"></textarea></div>
   </div>
   <div style="padding:1rem; border-top:1px solid var(--slate-200); display:flex; justify-content:flex-end; gap:0.5rem; background:var(--slate-50)">
-    <button id="btnSave" class="btn btn-primary"><i data-lucide="save" class="w-4 h-4"></i><span>Simpan Observasi</span></button>
+    <button id="btnSaveDraft" class="btn btn-secondary"><i data-lucide="save" class="w-4 h-4"></i><span>Simpan Draft</span></button>
+    <button id="btnKirim" class="btn btn-success"><i data-lucide="send" class="w-4 h-4"></i><span>Kirim ke Pengawas</span></button>
   </div>
 </div>
 
@@ -167,8 +168,10 @@
     refreshIcons();
   }
 
-  document.getElementById('btnSave').addEventListener('click', async () => {
-    const btn = document.getElementById('btnSave');
+  async function doSave(status) {
+    const btn = status === 'terkirim' ? document.getElementById('btnKirim') : document.getElementById('btnSaveDraft');
+    const btnOrig = btn.innerHTML;
+
     const payload = {
       id: evalId,
       npsn_sekolah: user.npsn,
@@ -177,28 +180,64 @@
       mapel: document.getElementById('fMapel').value,
       materi: document.getElementById('fMateri').value,
       durasi: document.getElementById('fDurasi').value,
-      link_dokumentasi: document.getElementById('fLinkDok').value,
+      link_dokumentasi: document.getElementById('fLinkDok') ? document.getElementById('fLinkDok').value : null,
       catatan_tambahan: document.getElementById('fCatatan').value,
       kekuatan: document.getElementById('fKekuatan').value,
       area_pengembangan: document.getElementById('fArea').value,
       rtl: document.getElementById('fRtl').value,
+      status: status,
       detail: Object.keys(detailMap).map(k => ({ kode: k, skor: detailMap[k].skor || 0, catatan: detailMap[k].catatan }))
     };
 
-    if (!payload.guru_id) return showToast('Pilih Guru', 'error');
-    if (!payload.tanggal) return showToast('Isi Tanggal', 'error');
-    if (payload.detail.length < 19) return showToast('Semua 19 indikator harus dinilai', 'error');
+    if (!payload.guru_id) return showToast('Pilih Guru terlebih dahulu', 'error');
+    if (!payload.tanggal) return showToast('Isi Tanggal terlebih dahulu', 'error');
+
+    if (status === 'terkirim') {
+      if (payload.detail.length < 19) {
+        return showToast('Semua 19 indikator harus dinilai sebelum dikirim', 'error');
+      }
+      const belum = payload.detail.filter(d => !d.skor || d.skor < 1 || d.skor > 4);
+      if (belum.length > 0) {
+        return showToast('Masih ada ' + belum.length + ' indikator belum diberi skor', 'error');
+      }
+    }
 
     btn.disabled = true;
-    btn.innerHTML = 'Menyimpan...';
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Menyimpan...</span>`;
+    refreshIcons();
+
     try {
-      await ObsAkademikAPI.save(payload);
-      showToast('Berhasil disimpan', 'success');
-      setTimeout(() => window.location.href = '/sispa-v2/ks/obs-akademik-list.html', 1000);
+      const res = await ObsAkademikAPI.save(payload);
+      if (status === 'terkirim') {
+        showToast('Berhasil dikirim ke Pengawas', 'success');
+        setTimeout(() => window.location.href = '/sispa-v2/ks/obs-akademik-list.html', 1000);
+      } else {
+        showToast('Draft tersimpan', 'success');
+        if (!evalId) {
+          // Redirect ke edit URL agar draft yang baru tersimpan bisa dilanjutkan
+          setTimeout(() => window.location.href = '/sispa-v2/ks/obs-akademik-form.html?id=' + res.id, 800);
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = btnOrig;
+          refreshIcons();
+        }
+      }
     } catch (err) {
       showToast('Gagal: ' + err.message, 'error');
-      btn.disabled = false; btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>Simpan Observasi</span>`; refreshIcons();
+      btn.disabled = false;
+      btn.innerHTML = btnOrig;
+      refreshIcons();
     }
+  }
+
+  document.getElementById('btnSaveDraft').addEventListener('click', () => doSave('draft'));
+  document.getElementById('btnKirim').addEventListener('click', async () => {
+    const ok = await confirmAction(
+      'Kirim ke Pengawas?',
+      'Setelah terkirim, data tidak dapat diubah lagi.',
+      { confirmText: 'Ya, kirim' }
+    );
+    if (ok) doSave('terkirim');
   });
 </script>
 </body>
