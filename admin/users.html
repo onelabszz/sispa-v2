@@ -479,13 +479,43 @@
   async function openDabinModal(pengawasId, nama) {
     const { data: sekolahList } = await sb.from('sekolah').select('npsn, nama').eq('status', 'aktif').order('nama');
     const currentDabin = await UsersAPI.getDabin(pengawasId);
+    const allAssignments = await UsersAPI.getAllDabinAssignments();
 
-    const listHtml = (sekolahList || []).map(s => `
-      <label style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem; border-radius:6px; cursor:pointer; hover:background:#f1f5f9" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-        <input type="checkbox" value="${s.npsn}" ${currentDabin.includes(s.npsn) ? 'checked' : ''} style="width:16px; height:16px;">
-        <span style="font-size:0.85rem"><strong>${escapeHtml(s.npsn)}</strong> — ${escapeHtml(s.nama)}</span>
-      </label>
-    `).join('');
+    // Buat map: NPSN -> { pengawas_id, pengawas_nama }
+    const takenMap = {};
+    allAssignments.forEach(a => {
+      takenMap[a.npsn_sekolah] = {
+        id: a.pengawas_id,
+        nama: a.pengawas?.nama || 'Pengawas Lain'
+      };
+    });
+
+    const listHtml = (sekolahList || []).map(s => {
+      const isMine = currentDabin.includes(s.npsn);
+      const taken = takenMap[s.npsn];
+      const isTakenByOther = taken && taken.id !== pengawasId;
+
+      let disabledAttr = '';
+      let labelStyle = 'display:flex; align-items:center; gap:0.5rem; padding:0.5rem; border-radius:6px; ';
+      let extraText = '';
+
+      // JIKA DIAMBIL PS LAIN: Abu-abu & disable
+      if (isTakenByOther) {
+        disabledAttr = 'disabled';
+        labelStyle += 'opacity:0.6; background:#f8fafc; cursor:not-allowed;';
+        extraText = `<span style="margin-left:auto; font-size:0.65rem; color:#991b1b; background:#fee2e2; padding:0.15rem 0.4rem; border-radius:4px; font-weight:600;">Dibina: ${escapeHtml(taken.nama)}</span>`;
+      } else {
+        labelStyle += 'cursor:pointer;';
+      }
+
+      return `
+        <label style="${labelStyle}" onmouseover="if(!${!!isTakenByOther}) this.style.background='#f1f5f9'" onmouseout="if(!${!!isTakenByOther}) this.style.background='transparent'">
+          <input type="checkbox" value="${s.npsn}" ${isMine ? 'checked' : ''} ${disabledAttr} style="width:16px; height:16px; cursor:${isTakenByOther ? 'not-allowed' : 'pointer'};">
+          <span style="font-size:0.85rem; flex:1;"><strong>${escapeHtml(s.npsn)}</strong> — ${escapeHtml(s.nama)}</span>
+          ${extraText}
+        </label>
+      `;
+    }).join('');
 
     openModal({
       title: `Atur Dabin — ${nama}`,
