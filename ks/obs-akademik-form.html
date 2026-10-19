@@ -41,7 +41,7 @@
     <div><label class="label">Mata Pelajaran</label><input type="text" id="fMapel" class="input"></div>
     <div><label class="label">Materi</label><input type="text" id="fMateri" class="input"></div>
     <div><label class="label">Durasi</label><input type="text" id="fDurasi" class="input" placeholder="Contoh: 2 JP (2x35 menit)"></div>
-    <div><label class="label">Video Ke-</label><select id="fVideoKe" class="select"><option value="1">Video 1</option><option value="2">Video 2</option></select></div>
+    <div style="grid-column:span 2;"><label class="label">Link Dokumentasi (Opsional)</label><input type="url" id="fLinkDok" class="input" placeholder="https://drive.google.com/..."></div>
   </div>
 </div>
 
@@ -92,7 +92,7 @@
       document.getElementById('fMapel').value = res.header.mapel || '';
       document.getElementById('fMateri').value = res.header.materi || '';
       document.getElementById('fDurasi').value = res.header.durasi || '';
-      document.getElementById('fVideoKe').value = res.header.video_ke || 1;
+      document.getElementById('fLinkDok').value = res.header.link_dokumentasi || '';
       document.getElementById('fCatatan').value = res.header.catatan_tambahan || '';
       document.getElementById('fKekuatan').value = res.header.kekuatan || '';
       document.getElementById('fArea').value = res.header.area_pengembangan || '';
@@ -162,7 +162,7 @@
       mapel: document.getElementById('fMapel').value,
       materi: document.getElementById('fMateri').value,
       durasi: document.getElementById('fDurasi').value,
-      video_ke: parseInt(document.getElementById('fVideoKe').value),
+      link_dokumentasi: document.getElementById('fLinkDok').value,
       catatan_tambahan: document.getElementById('fCatatan').value,
       kekuatan: document.getElementById('fKekuatan').value,
       area_pengembangan: document.getElementById('fArea').value,
