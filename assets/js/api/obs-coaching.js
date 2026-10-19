@@ -90,6 +90,34 @@ const ObsCoachingAPI = (function () {
     return { id, ...skor };
   }
 
-  return { getInstrumen, hitungSkor, list, get, save };
+  async function kirim(id) {
+    if (!id) throw new Error('ID wajib diisi');
+    const { data, error } = await sb
+      .from('obs_coaching')
+      .update({
+        status: 'terkirim',
+        submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async function listForPengawas(opts = {}) {
+    let q = sb
+      .from('obs_coaching')
+      .select('*, guru:guru(nama, mapel, kelas), sekolah:sekolah(nama, kecamatan), observer:profiles!obs_coaching_obs_fkey(nama, nip)')
+      .eq('status', 'terkirim');
+    if (opts.npsn_sekolah) q = q.eq('npsn_sekolah', opts.npsn_sekolah);
+    q = q.order('submitted_at', { ascending: false });
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  return { getInstrumen, hitungSkor, list, get, save, kirim, listForPengawas };
 })();
 window.ObsCoachingAPI = ObsCoachingAPI;
