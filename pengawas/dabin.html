@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Sekolah Binaan Saya</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="margin-bottom:1.5rem">
+  <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Sekolah Binaan Saya</h1>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Daftar sekolah yang menjadi tanggung jawab pengawasan Anda.</p>
+</div>
+
+<div style="padding:0.75rem; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; font-size:0.85rem; color:#92400e; margin-bottom:1.5rem; display:flex; gap:0.5rem; align-items:flex-start">
+  <i data-lucide="info" class="w-4 h-4" style="margin-top:0.15rem; flex-shrink:0"></i>
+  <div>Penugasan sekolah binaan dikelola oleh <strong>Admin Dinas</strong>. Jika ada perubahan atau kekeliruan, silakan hubungi Admin.</div>
+</div>
+
+<div id="dabinGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.25rem; margin-bottom:3rem">
+  <div style="text-align:center; color:var(--slate-400); padding:3rem; grid-column:1/-1">
+    <i data-lucide="loader-2" class="w-8 h-8 animate-spin" style="margin:0 auto 1rem"></i>
+    <div>Memuat data dabin...</div>
+  </div>
+</div>
+
+<div id="emptyState" class="hidden card empty-state" style="margin-top:2rem">
+  <div class="empty-state-icon"><i data-lucide="map-pin" class="w-6 h-6"></i></div>
+  <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada sekolah binaan</h3>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Admin belum menugaskan sekolah kepada Anda.</p>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script>
+  let user = null;
+
+  initPage('pengawas', 'dabin', async (u) => {
+    user = u;
+    await loadData();
+  });
+
+  async function loadData() {
+    try {
+      const { data: dabin, error } = await sb
+        .from('pengawas_sekolah')
+        .select(`
+          npsn_sekolah,
+          sekolah:sekolah!pengawas_sekolah_npsn_sekolah_fkey(npsn, nama, jenjang, kecamatan)
+        `)
+        .eq('pengawas_id', user.id);
+
+      if (error) throw error;
+
+      const grid = document.getElementById('dabinGrid');
+      const empty = document.getElementById('emptyState');
+
+      if (!dabin || dabin.length === 0) {
+        grid.style.display = 'none';
+        empty.classList.remove('hidden');
+        refreshIcons();
+        return;
+      }
+
+      grid.innerHTML = dabin.map(d => {
+        const s = d.sekolah;
+        return `
+          <div class="card" style="padding:1.25rem; display:flex; align-items:flex-start; gap:1rem">
+            <div style="width:48px; height:48px; border-radius:12px; background:var(--brand-50); color:var(--brand-600); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.25rem; flex-shrink:0">
+              ${s.nama.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex:1; min-width:0">
+              <div style="font-weight:700; font-size:1rem; color:var(--slate-900); line-height:1.3">${escapeHtml(s.nama)}</div>
+              <div style="font-size:0.8rem; color:var(--slate-500); margin-top:0.25rem">
+                NPSN <span class="text-mono">${s.npsn}</span>
+              </div>
+              <div style="font-size:0.8rem; color:var(--slate-500); margin-top:0.15rem">
+                ${escapeHtml(s.jenjang || '-')} ${s.kecamatan ? '· Kec. ' + escapeHtml(s.kecamatan) : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      refreshIcons();
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal memuat dabin: ' + err.message, 'error');
+    }
+  }
+</script>
+</body>
+</html>
