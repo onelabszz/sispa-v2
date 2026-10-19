@@ -60,6 +60,7 @@ const ObsCoachingAPI = (function () {
       catatan_kekuatan: payload.catatan_kekuatan,
       catatan_area: payload.catatan_area,
       status: payload.status || 'draft',
+      submitted_at: payload.status === 'terkirim' ? new Date().toISOString() : null,
       updated_at: new Date().toISOString()
     };
 
@@ -118,6 +119,13 @@ const ObsCoachingAPI = (function () {
     return data || [];
   }
 
-  return { getInstrumen, hitungSkor, list, get, save, kirim, listForPengawas };
+  async function remove(id) {
+    if (!id) throw new Error('ID wajib diisi');
+    const { error } = await sb.from('obs_coaching').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  return { getInstrumen, hitungSkor, list, get, save, remove, kirim, listForPengawas };
 })();
 window.ObsCoachingAPI = ObsCoachingAPI;
