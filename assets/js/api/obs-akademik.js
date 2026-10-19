@@ -44,7 +44,11 @@ const ObsAkademikAPI = (function () {
   }
 
   async function get(id) {
-    const { data: header, error: e1 } = await sb.from('obs_akademik').select('*, guru:guru(*), sekolah:sekolah(*)').eq('id', id).single();
+    const { data: header, error: e1 } = await sb
+      .from('obs_akademik')
+      .select('*, guru:guru(*), sekolah:sekolah(*), supervisor:profiles!obs_akademik_sup_fkey(nama, nip)')
+      .eq('id', id)
+      .single();
     if (e1) throw new Error(e1.message);
     const { data: detail, error: e2 } = await sb.from('obs_akademik_detail').select('*').eq('obs_id', id);
     if (e2) throw new Error(e2.message);
