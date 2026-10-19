@@ -97,6 +97,8 @@
       else if (x.kategori === 'Berkembang') badgeCls = 'badge-info';
       else if (x.kategori === 'Mulai Terlihat') badgeCls = 'badge-warning';
 
+      const isTerkirim = x.status === 'terkirim';
+
       return `
         <tr>
           <td>
@@ -106,13 +108,35 @@
           <td style="font-size:0.875rem;">${escapeHtml(x.mapel || '—')}</td>
           <td style="font-size:0.875rem;">${formatTanggal(x.tanggal)}</td>
           <td style="text-align:center; font-weight:700;">${x.skor_total} <span style="font-size:0.7rem; font-weight:400; color:var(--slate-500);">/ 76</span></td>
-          <td style="text-align:center;"><span class="badge ${badgeCls}">${x.kategori}</span></td>
+          <td style="text-align:center;">
+            <span class="badge ${badgeCls}">${x.kategori}</span>
+            <div style="margin-top:4px;"><span class="badge ${isTerkirim ? 'badge-success' : 'badge-neutral'}">${isTerkirim ? 'Terkirim' : 'Draft'}</span></div>
+          </td>
           <td style="text-align:right; white-space:nowrap;">
-            <a href="/sispa-v2/ks/obs-akademik-form.html?id=${x.id}" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem;">${icon('pencil', 'w-3.5 h-3.5')}<span>Edit</span></a>
+            <a href="/sispa-v2/ks/obs-akademik-form.html?id=${x.id}" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem;">${icon(isTerkirim ? 'eye' : 'pencil', 'w-3.5 h-3.5')}<span>${isTerkirim ? 'Lihat' : 'Edit'}</span></a>
+            <a href="/sispa-v2/ks/obs-akademik-cetak.html?id=${x.id}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;">${icon('printer', 'w-3.5 h-3.5')}<span>Cetak</span></a>
+            ${!isTerkirim ? `
+              <button class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;" onclick="doKirim('${x.id}')">${icon('send', 'w-3.5 h-3.5')}<span>Kirim</span></button>
+            ` : ''}
           </td>
         </tr>`;
     }).join('');
     refreshIcons();
+  }
+  async function doKirim(id) {
+    const ok = await confirmAction(
+      'Kirim ke Pengawas?',
+      'Setelah terkirim, data tidak dapat diubah lagi.',
+      { confirmText: 'Ya, kirim' }
+    );
+    if (!ok) return;
+    await withLoading('Mengirim...', async () => {
+      try {
+        await ObsAkademikAPI.kirim(id);
+        showToast('Berhasil dikirim ke Pengawas', 'success');
+        await loadData();
+      } catch (err) { showToast('Gagal: ' + err.message, 'error'); }
+    });
   }
   document.getElementById('btnRefresh').addEventListener('click', loadData);
 </script>
