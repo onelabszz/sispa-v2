@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Progress Observasi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+<style>
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+  }
+  .status-belum { background: #f1f5f9; color: #64748b; }
+  .status-draft { background: #fef3c7; color: #92400e; }
+  .status-terkirim { background: #dcfce7; color: #166534; }
+</style>
+</head>
+<body>
+
+<div style="margin-bottom:1.5rem">
+  <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Progress Observasi</h1>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Pantau status Observasi Akademik & Coaching seluruh guru per sekolah.</p>
+</div>
+
+<!-- Filter Bar -->
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-body" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center">
+    <div style="flex:1; min-width:250px">
+      <label class="label">Pilih Sekolah Binaan</label>
+      <select id="filterSekolah" class="select">
+        <option value="">— Pilih Sekolah —</option>
+      </select>
+    </div>
+    <div style="flex:1; min-width:200px">
+      <label class="label">Cari Guru</label>
+      <input type="text" id="searchInput" class="input" placeholder="Nama atau NIP..." />
+    </div>
+    <div style="min-width:180px">
+      <label class="label">Filter Status</label>
+      <select id="filterStatus" class="select">
+        <option value="">Semua Status</option>
+        <option value="belum">Belum Ada</option>
+        <option value="draft">Draft</option>
+        <option value="terkirim">Terkirim</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- Ringkasan (Tampil setelah pilih sekolah) -->
+<div id="summaryBox" class="hidden" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:1rem; margin-bottom:1.5rem">
+  <!-- Diisi via JS -->
+</div>
+
+<!-- Tabel Utama -->
+<div class="card" style="overflow:hidden; display:none" id="tableCard">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="users" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Daftar Guru</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+    </div>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Guru</th>
+          <th style="text-align:center">Obs. Akademik</th>
+          <th style="text-align:center">Obs. Coaching</th>
+          <th style="text-align:right; width:180px">Aksi (Cetak)</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Empty States -->
+<div id="emptyState" class="hidden card empty-state">
+  <div class="empty-state-icon"><i data-lucide="inbox" class="w-6 h-6"></i></div>
+  <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada data</h3>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Pilih sekolah terlebih dahulu.</p>
+</div>
+
+<div id="noGuruState" class="hidden card empty-state">
+  <div class="empty-state-icon"><i data-lucide="users" class="w-6 h-6"></i></div>
+  <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Tidak ada guru</h3>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Sekolah ini belum memiliki guru aktif.</p>
+</div>
+
+<div id="noResultState" class="hidden card empty-state">
+  <div class="empty-state-icon"><i data-lucide="search-x" class="w-6 h-6"></i></div>
+  <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Tidak ada hasil</h3>
+  <p style="font-size:0.875rem; color:var(--slate-500); margin:0">Coba ubah filter atau kata kunci.</p>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script>
+  let user = null;
+  let dabinList = [];
+  let allGuru = [];
+  let obsAkademikMap = {}; // guru_id -> record
+  let obsCoachingMap = {}; // guru_id -> record
+  
+  let filterText = '';
+  let filterStatus = '';
+
+  initPage('pengawas', 'obs-progress', async (u) => {
+    user = u;
+    document.getElementById('emptyState').classList.remove('hidden');
+    await loadDabin();
+  });
+
+  async function loadDabin() {
+    const { data, error } = await sb
+      .from('pengawas_sekolah')
+      .select(`npsn_sekolah, sekolah:sekolah!pengawas_sekolah_npsn_sekolah_fkey(npsn, nama)`)
+      .eq('pengawas_id', user.id);
+
+    if (error) return showToast('Gagal memuat sekolah: ' + error.message, 'error');
+    
+    dabinList = data || [];
+    const sel = document.getElementById('filterSekolah');
+    if (dabinList.length === 0) {
+      sel.innerHTML = '<option value="">— Belum ada sekolah binaan —</option>';
+      return;
+    }
+    dabinList.forEach(d => {
+      const s = d.sekolah;
+      sel.innerHTML += `<option value="${s.npsn}">${escapeHtml(s.nama)}</option>`;
+    });
+  }
+
+  // Event Listeners
+  document.getElementById('filterSekolah').addEventListener('change', (e) => {
+    const npsn = e.target.value;
+    if (!npsn) {
+      document.getElementById('tableCard').style.display = 'none';
+      document.getElementById('summaryBox').classList.add('hidden');
+      document.getElementById('emptyState').classList.remove('hidden');
+      document.getElementById('noGuruState').classList.add('hidden');
+      document.getElementById('noResultState').classList.add('hidden');
+      return;
+    }
+    loadProgressData(npsn);
+  });
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    filterText = e.target.value.toLowerCase();
+    renderTable();
+  });
+  
+  document.getElementById('filterStatus').addEventListener('change', (e) => {
+    filterStatus = e.target.value;
+    renderTable();
+  });
+
+  async function loadProgressData(npsn) {
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('tableCard').style.display = 'none';
+    document.getElementById('summaryBox').classList.add('hidden');
+    
+    await withLoading('Memuat data progress...', async () => {
+      try {
+        // 1. Ambil Guru Aktif
+        const { data: guruData, error: errG } = await sb
+          .from('guru')
+          .select('*')
+          .eq('npsn_sekolah', npsn)
+          .eq('status', 'aktif')
+          .order('nama');
+        if (errG) throw errG;
+        allGuru = guruData || [];
+
+        // 2. Ambil Obs Akademik
+        const { data: obsA, error: errA } = await sb
+          .from('obs_akademik')
+          .select('id, guru_id, status, tanggal, submitted_at')
+          .eq('npsn_sekolah', npsn)
+          .order('created_at', { ascending: false }); // yang terbaru di atas
+        
+        // 3. Ambil Obs Coaching
+        const { data: obsC, error: errC } = await sb
+          .from('obs_coaching')
+          .select('id, guru_id, status, tanggal, submitted_at')
+          .eq('npsn_sekolah', npsn)
+          .order('created_at', { ascending: false });
+
+        // 4. Map by guru_id (ambil yang pertama muncul / terbaru)
+        obsAkademikMap = {};
+        (obsA || []).forEach(o => { if (!obsAkademikMap[o.guru_id]) obsAkademikMap[o.guru_id] = o; });
+
+        obsCoachingMap = {};
+        (obsC || []).forEach(o => { if (!obsCoachingMap[o.guru_id]) obsCoachingMap[o.guru_id] = o; });
+
+        // 5. Render
+        if (allGuru.length === 0) {
+          document.getElementById('noGuruState').classList.remove('hidden');
+        } else {
+          document.getElementById('tableCard').style.display = 'block';
+          renderSummary();
+          renderTable();
+        }
+        refreshIcons();
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function renderSummary() {
+    let aBelum = 0, aDraft = 0, aKirim = 0;
+    let cBelum = 0, cDraft = 0, cKirim = 0;
+
+    allGuru.forEach(g => {
+      const oa = obsAkademikMap[g.id];
+      const oc = obsCoachingMap[g.id];
+
+      if (!oa) aBelum++;
+      else if (oa.status === 'draft') aDraft++;
+      else if (oa.status === 'terkirim') aKirim++;
+
+      if (!oc) cBelum++;
+      else if (oc.status === 'draft') cDraft++;
+      else if (oc.status === 'terkirim') cKirim++;
+    });
+
+    document.getElementById('summaryBox').classList.remove('hidden');
+    document.getElementById('summaryBox').innerHTML = `
+      <div class="stat-card" style="padding:1rem">
+        <div style="font-size:0.75rem; color:var(--slate-500); font-weight:600; text-transform:uppercase; margin-bottom:0.5rem">Obs. Akademik</div>
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+          <span>⚪ Belum: <strong>${aBelum}</strong></span>
+          <span>🟡 Draft: <strong>${aDraft}</strong></span>
+          <span>🟢 Kirim: <strong>${aKirim}</strong></span>
+        </div>
+      </div>
+      <div class="stat-card" style="padding:1rem">
+        <div style="font-size:0.75rem; color:var(--slate-500); font-weight:600; text-transform:uppercase; margin-bottom:0.5rem">Obs. Coaching</div>
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+          <span>⚪ Belum: <strong>${cBelum}</strong></span>
+          <span>🟡 Draft: <strong>${cDraft}</strong></span>
+          <span>🟢 Kirim: <strong>${cKirim}</strong></span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const noResult = document.getElementById('noResultState');
+    const tableCard = document.getElementById('tableCard');
+    
+    let filtered = allGuru.slice();
+
+    if (filterText) {
+      filtered = filtered.filter(g => 
+        (g.nama || '').toLowerCase().includes(filterText) || 
+        (g.nip || '').includes(filterText)
+      );
+    }
+
+    if (filterStatus) {
+      filtered = filtered.filter(g => {
+        const oa = obsAkademikMap[g.id];
+        const oc = obsCoachingMap[g.id];
+        const statusA = !oa ? 'belum' : (oa.status === 'draft' ? 'draft' : 'terkirim');
+        const statusC = !oc ? 'belum' : (oc.status === 'draft' ? 'draft' : 'terkirim');
+        // Tampilkan jika SALAH SATU (akademik atau coaching) sesuai filter
+        return statusA === filterStatus || statusC === filterStatus;
+      });
+    }
+
+    document.getElementById('resultCount').textContent = filtered.length + ' / ' + allGuru.length;
+
+    if (filtered.length === 0) {
+      tableCard.style.display = 'none';
+      noResult.classList.remove('hidden');
+      refreshIcons();
+      return;
+    }
+
+    tableCard.style.display = 'block';
+    noResult.classList.add('hidden');
+
+    tbody.innerHTML = filtered.map(g => {
+      const oa = obsAkademikMap[g.id];
+      const oc = obsCoachingMap[g.id];
+
+      // Tentukan UI Badge & Aksi
+      const badgeA = getBadge(oa);
+      const badgeC = getBadge(oc);
+      
+      const btnA = getActionBtn(oa, 'akademik');
+      const btnC = getActionBtn(oc, 'coaching');
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:600; color:var(--slate-900)">${escapeHtml(g.nama)}</div>
+            <div style="font-size:0.75rem; color:var(--slate-500)">
+              ${escapeHtml(g.nip || '-')} · ${escapeHtml(g.mapel || '-')} ${g.kelas ? '· Kls ' + g.kelas : ''}
+            </div>
+          </td>
+          <td style="text-align:center">${badgeA}</td>
+          <td style="text-align:center">${badgeC}</td>
+          <td style="text-align:right; white-space:nowrap">
+            ${btnA}
+            ${btnC}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    refreshIcons();
+  }
+
+  function getBadge(rec) {
+    if (!rec) return `<span class="status-badge status-belum">⚪ Belum</span>`;
+    if (rec.status === 'draft') return `<span class="status-badge status-draft">🟡 Draft</span>`;
+    return `<span class="status-badge status-terkirim">🟢 Terkirim</span>`;
+  }
+
+  function getActionBtn(rec, type) {
+    if (!rec) return '';
+    if (rec.status === 'terkirim') {
+      const url = type === 'akademik' 
+        ? `/sispa-v2/ks/obs-akademik-cetak.html?id=${rec.id}`
+        : `/sispa-v2/ks/obs-coaching-cetak.html?id=${rec.id}`;
+      return `<a href="${url}" target="_blank" class="btn btn-secondary" style="font-size:0.7rem; padding:0.3rem 0.5rem; margin-left:0.25rem">${icon('printer','w-3 h-3')} ${type === 'akademik' ? 'Akademik' : 'Coaching'}</a>`;
+    }
+    return '';
+  }
+</script>
+</body>
+</html>
