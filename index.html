@@ -470,16 +470,16 @@
       <form id="loginForm" novalidate>
 
         <div class="input-group">
-          <label class="input-label" for="email">Email</label>
+          <label class="input-label" for="email">Email atau NPSN</label>
           <div style="position:relative">
             <span class="input-icon">
-              <i data-lucide="mail" style="width:18px; height:18px"></i>
+              <i data-lucide="user" style="width:18px; height:18px"></i>
             </span>
             <input
-              type="email"
+              type="text"
               id="email"
               class="input-field"
-              placeholder="nama@sekolah.sch.id"
+              placeholder="Email (Pengawas) atau NPSN (KS)"
               autocomplete="username"
               required
             />
@@ -588,7 +588,7 @@
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
-    if (!email) return showError('Email wajib diisi');
+    if (!email) return showError('Email atau NPSN wajib diisi');
     if (!password) return showError('Password wajib diisi');
 
     // Loading state
