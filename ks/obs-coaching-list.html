@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISPA — Observasi Coaching</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/sispa-v2/assets/css/style.css" />
+</head>
+<body>
+
+<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--slate-900); margin:0">Observasi Coaching</h1>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0.25rem 0 0">Feedback Pasca-observasi (STAR-GROW)</p>
+  </div>
+  <div style="display:flex; gap:0.5rem">
+    <button id="btnRefresh" class="btn btn-secondary">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Refresh</span>
+    </button>
+    <a href="/sispa-v2/ks/obs-coaching-form.html" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      <span>Observasi Baru</span>
+    </a>
+  </div>
+</div>
+
+<div class="card" style="overflow:hidden">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <i data-lucide="message-circle" class="w-4 h-4" style="color:var(--slate-500)"></i>
+      <h2 style="font-weight:600; font-size:0.875rem; color:var(--slate-900); margin:0">Daftar Observasi Coaching</h2>
+      <span id="resultCount" class="badge badge-neutral">0</span>
+    </div>
+  </div>
+  <div id="tableWrap" style="overflow-x:auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Guru</th>
+          <th>Mata Pelajaran</th>
+          <th>Tanggal</th>
+          <th style="text-align:center">Skor</th>
+          <th style="text-align:center">Kategori</th>
+          <th style="text-align:right; width:220px">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="hidden empty-state">
+    <div class="empty-state-icon"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
+    <h3 style="font-weight:600; color:var(--slate-900); margin:0 0 0.25rem">Belum ada data</h3>
+    <p style="font-size:0.875rem; color:var(--slate-500); margin:0 0 1rem">Mulai observasi coaching pertama</p>
+    <a href="/sispa-v2/ks/obs-coaching-form.html" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      <span>Observasi Baru</span>
+    </a>
+  </div>
+</div>
+
+<script src="/sispa-v2/assets/js/config.js"></script>
+<script src="/sispa-v2/assets/js/supabase.js"></script>
+<script src="/sispa-v2/assets/js/auth.js"></script>
+<script src="/sispa-v2/assets/js/ui.js"></script>
+<script src="/sispa-v2/assets/js/app.js"></script>
+<script src="/sispa-v2/assets/js/api/obs-coaching.js"></script>
+<script>
+  let user = null;
+  let items = [];
+
+  initPage('ks', 'obs-coaching', async (u) => {
+    user = u;
+    await loadData();
+  });
+
+  async function loadData() {
+    await withLoading('Memuat...', async () => {
+      try {
+        items = await ObsCoachingAPI.list({ npsn_sekolah: user.npsn });
+        render();
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function render() {
+    const tbody = document.getElementById('tableBody');
+    const wrap = document.getElementById('tableWrap');
+    const empty = document.getElementById('emptyState');
+
+    wrap.style.display = 'none';
+    empty.classList.add('hidden');
+
+    document.getElementById('resultCount').textContent = items.length;
+
+    if (items.length === 0) {
+      empty.classList.remove('hidden');
+      refreshIcons();
+      return;
+    }
+
+    wrap.style.display = 'block';
+
+    tbody.innerHTML = items.map(x => {
+      let badgeCls = 'badge-neutral';
+      if (x.kategori === 'Konsisten/Optimal') badgeCls = 'badge-success';
+      else if (x.kategori === 'Berkembang') badgeCls = 'badge-info';
+      else if (x.kategori === 'Mulai Tampak') badgeCls = 'badge-warning';
+
+      const isTerkirim = x.status === 'terkirim';
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:500;">${escapeHtml(x.guru?.nama || '—')}</div>
+            <div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(x.guru?.kelas || '')}</div>
+          </td>
+          <td style="font-size:0.875rem;">${escapeHtml(x.guru?.mapel || '—')}</td>
+          <td style="font-size:0.875rem;">${formatTanggal(x.tanggal)}</td>
+          <td style="text-align:center; font-weight:700;">
+            ${x.skor_total} <span style="font-size:0.7rem; font-weight:400; color:var(--slate-500);">/ 32</span>
+          </td>
+          <td style="text-align:center;">
+            <span class="badge ${badgeCls}">${x.kategori}</span>
+            <div style="margin-top:4px;">
+              <span class="badge ${isTerkirim ? 'badge-success' : 'badge-neutral'}">${isTerkirim ? 'Terkirim' : 'Draft'}</span>
+            </div>
+          </td>
+          <td style="text-align:right; white-space:nowrap;">
+            <a href="/sispa-v2/ks/obs-coaching-form.html?id=${x.id}" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem;">
+              ${icon(isTerkirim ? 'eye' : 'pencil', 'w-3.5 h-3.5')}
+              <span>${isTerkirim ? 'Lihat' : 'Edit'}</span>
+            </a>
+            <a href="/sispa-v2/ks/obs-coaching-cetak.html?id=${x.id}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;">
+              ${icon('printer', 'w-3.5 h-3.5')}
+              <span>Cetak</span>
+            </a>
+            ${!isTerkirim ? `
+              <button class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.6rem; margin-left:0.25rem;" onclick="doKirim('${x.id}')">
+                ${icon('send', 'w-3.5 h-3.5')}
+                <span>Kirim</span>
+              </button>
+            ` : ''}
+          </td>
+        </tr>`;
+    }).join('');
+
+    refreshIcons();
+  }
+
+  // Kirim ke Pengawas
+  async function doKirim(id) {
+    const ok = await confirmAction(
+      'Kirim ke Pengawas?',
+      'Setelah terkirim, data tidak dapat diubah lagi.',
+      { confirmText: 'Ya, kirim' }
+    );
+    if (!ok) return;
+
+    await withLoading('Mengirim...', async () => {
+      try {
+        await ObsCoachingAPI.kirim(id);
+        showToast('Berhasil dikirim ke Pengawas', 'success');
+        await loadData();
+      } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // Ekspos agar bisa dipanggil dari onclick inline
+  window.doKirim = doKirim;
+
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+</script>
+</body>
+</html>
